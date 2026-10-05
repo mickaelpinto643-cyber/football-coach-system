@@ -1,0 +1,111 @@
+# Backups historiques
+src/*.backup*
+src/*.bak*
+src/*.save
+src/App.before-*.jsx
+src/App.dashboard.backup.jsx
+src/vite.config.before-*.js
+src/vite.config.js.save
+
+# Fichiers temporaires
+*.swp
+*.swo
+.DS_Store
+
+# Build
+dist/
+
+# Dépendances
+node_modules/
+
+# Uploads locaux
+server/uploads/
+
+# Bases SQLite temporaires
+*.db-shm
+*.db-wal
+
+# Backups historiques serveur
+server/*.before-*.js
+server/*.bak*
+server/*.save
+
+# Backups historiques Vite
+vite.config.before-*.js
+vite.config.js.save
+
+# Configuration locale / secrets
+.env
+.env.*
+!.env.example
+
+# Bases et sauvegardes SQLite
+data/*.db
+data/*.db-shm
+data/*.db-wal
+server/*.db
+server/*.db-shm
+server/*.db-wal
+
+# Archives et sauvegardes du projet
+backups/
+src/*.before-*
+src/*.bak*
+src/*.save
+src/App.*backup*
+src/App.*before-*
+src/vite.config.before-*
+server/*.before-*
+server/*.bak*
+server/*.save
+
+# Scripts historiques de restauration
+clean-new-course.cjs
+restore-course.cjs
+
+# Anciens fichiers de contenu
+src/data/*.before-*
+
+# Gros fichiers média locaux
+public/*.mp4
+public/*.mov
+public/*.webm
+server/uploads/
+
+# Bases de données locales
+data/*.db
+data/*.db-shm
+data/*.db-wal
+server/*.db
+server/*.db-shm
+server/*.db-wal
+
+# Gros fichiers vidéo locaux
+public/*.mp4
+public/*.mov
+public/*.webm
+
+# Uploads
+server/uploads/
+
+# Backups historiques
+backups/
+src/*.backup*
+src/*.bak*
+src/*.save
+src/*.before-*
+src/data/*.before-*
+server/*.before-*
+server/*.bak*
+server/*.save
+vite.config.before-*
+vite.config.js.save
+
+# Secrets locaux
+.env
+.env.*
+!.env.example
+
+# Scripts historiques
+clean-new-course.cjs
+restore-course.cjs

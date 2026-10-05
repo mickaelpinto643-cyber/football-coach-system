@@ -1,0 +1,364 @@
+html,body,#root{margin:0;min-height:100%;width:100%}
+
+/* =========================================================
+   FCS — LESSON EXPERIENCE V2
+   ========================================================= */
+
+.fcsCourse {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 24px 28px 60px;
+}
+
+.courseTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.courseBack {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  background: transparent;
+  color: #667789;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 8px 0;
+}
+
+.courseBreadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #91a0ae;
+  font-size: 13px;
+}
+
+.courseBreadcrumb strong {
+  color: #09233d;
+}
+
+.courseHero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 24px;
+  background: linear-gradient(135deg, #09233d 0%, #123b5e 100%);
+  border-radius: 24px;
+  padding: 30px;
+  color: #fff;
+  margin-bottom: 24px;
+  box-shadow: 0 14px 40px rgba(9, 35, 61, .12);
+}
+
+.courseHeroText h1 {
+  margin: 8px 0 10px;
+  font-size: clamp(28px, 3vw, 42px);
+  line-height: 1.08;
+  letter-spacing: -.8px;
+}
+
+.courseHeroText p {
+  max-width: 720px;
+  margin: 0;
+  color: rgba(255,255,255,.72);
+  line-height: 1.65;
+}
+
+.courseEyebrow {
+  color: #f1bd3e;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+}
+
+.courseProgressBox {
+  align-self: stretch;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 18px;
+  padding: 20px;
+}
+
+.courseProgressTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.courseProgressTop strong {
+  color: #f1bd3e;
+  font-size: 20px;
+}
+
+.courseProgressTrack {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255,255,255,.14);
+}
+
+.courseProgressTrack > div {
+  height: 100%;
+  border-radius: inherit;
+  background: #f1bd3e;
+  transition: width .3s ease;
+}
+
+.fcsLessonLayout {
+  display: grid;
+  grid-template-columns: 285px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.fcsLessonSidebar {
+  position: sticky;
+  top: 24px;
+  background: #fff;
+  border: 1px solid #e7edf2;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 8px 28px rgba(9,35,61,.05);
+}
+
+.fcsLessonSidebarHeader {
+  padding: 20px;
+  border-bottom: 1px solid #edf1f4;
+}
+
+.fcsLessonSidebarHeader strong {
+  display: block;
+  color: #09233d;
+  font-size: 15px;
+}
+
+.fcsLessonSidebarHeader span {
+  display: block;
+  margin-top: 5px;
+  color: #8795a3;
+  font-size: 12px;
+}
+
+.fcsLessonList {
+  max-height: 650px;
+  overflow-y: auto;
+}
+
+.fcsLessonItem {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  border: 0;
+  border-bottom: 1px solid #f0f3f6;
+  background: #fff;
+  padding: 14px 16px;
+  text-align: left;
+  cursor: pointer;
+  transition: background .15s ease;
+}
+
+.fcsLessonItem:hover {
+  background: #f7f9fb;
+}
+
+.fcsLessonItem.active {
+  background: #f7f9fb;
+  box-shadow: inset 3px 0 0 #f1bd3e;
+}
+
+.fcsLessonItem.done .fcsLessonNumber {
+  background: #e8f5ed;
+  color: #2e8b57;
+}
+
+.fcsLessonNumber {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #edf2f6;
+  color: #6d7c8b;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.fcsLessonItem.active .fcsLessonNumber {
+  background: #f1bd3e;
+  color: #09233d;
+}
+
+.fcsLessonItemTitle {
+  color: #263b4d;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.fcsLessonMain {
+  min-width: 0;
+}
+
+.premiumVideoFrame {
+  overflow: hidden;
+  border-radius: 22px;
+  background: #071827;
+  box-shadow: 0 16px 42px rgba(0,0,0,.14);
+}
+
+.premiumVideoFrame video {
+  aspect-ratio: 16 / 9;
+  object-fit: contain;
+}
+
+.lessonContentCard {
+  margin-top: 22px;
+  background: #fff;
+  border: 1px solid #e7edf2;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.lessonContentHeader {
+  padding: 24px 26px;
+  border-bottom: 1px solid #edf1f4;
+}
+
+.lessonContentHeader h2 {
+  margin: 0;
+  color: #09233d;
+  font-size: 25px;
+}
+
+.lessonContentHeader p {
+  margin: 8px 0 0;
+  color: #718092;
+  line-height: 1.6;
+}
+
+.lessonTabs {
+  display: flex;
+  gap: 4px;
+  padding: 8px 12px;
+  border-bottom: 1px solid #edf1f4;
+}
+
+.lessonTabs button {
+  border: 0;
+  background: transparent;
+  color: #718092;
+  padding: 11px 16px;
+  border-radius: 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.lessonTabs button:hover {
+  background: #f5f7f9;
+}
+
+.lessonTabs button.activeTab {
+  background: #09233d;
+  color: #fff;
+}
+
+.lessonBody {
+  padding: 26px;
+}
+
+.lessonBody h3 {
+  color: #09233d;
+}
+
+.lessonBody p {
+  color: #637487;
+  line-height: 1.7;
+}
+
+.fcsLessonNavigation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 22px;
+}
+
+.fcsLessonNavigation button {
+  min-height: 46px;
+  border-radius: 12px;
+  padding: 0 18px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.fcsLessonPrev {
+  border: 1px solid #dfe6ec;
+  background: #fff;
+  color: #09233d;
+}
+
+.fcsLessonNext {
+  border: 0;
+  background: #f1bd3e;
+  color: #09233d;
+}
+
+.fcsLessonNavigation button:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+@media (max-width: 1050px) {
+  .fcsLessonLayout {
+    grid-template-columns: 240px minmax(0, 1fr);
+  }
+
+  .courseHero {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .fcsCourse {
+    padding: 16px 14px 40px;
+  }
+
+  .fcsLessonLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .fcsLessonSidebar {
+    position: static;
+  }
+
+  .fcsLessonList {
+    max-height: 300px;
+  }
+
+  .courseTop {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .lessonTabs {
+    overflow-x: auto;
+  }
+
+  .fcsLessonNavigation {
+    flex-direction: column;
+  }
+
+  .fcsLessonNavigation button {
+    width: 100%;
+  }
+}
+

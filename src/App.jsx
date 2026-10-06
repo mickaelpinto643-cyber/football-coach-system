@@ -1799,6 +1799,7 @@ function FormationManager({ initialModules = [] }) {
     Array.isArray(initialModules) ? initialModules : []
   );
   const [loading, setLoading] = useState(false);
+  const [formError, setFormError] = useState("");
 
   const [showModuleForm, setShowModuleForm] = useState(false);
   const [lessonModuleId, setLessonModuleId] = useState(null);
@@ -1838,7 +1839,8 @@ function FormationManager({ initialModules = [] }) {
         throw new Error("Impossible de charger le contenu.");
       }
 
-      const data = await response.json();
+      const text = await response.text();
+      const data = text ? JSON.parse(text) : {};
 
       const apiModules = Array.isArray(data.modules)
         ? data.modules
@@ -1893,6 +1895,7 @@ function FormationManager({ initialModules = [] }) {
 
       const response = await fetch("/api/admin/modules", {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json"
         },
@@ -1907,9 +1910,9 @@ function FormationManager({ initialModules = [] }) {
         })
       });
 
-      const data = await response.json();
+      const text = await response.text();
 
-      if (!response.ok) {
+      let data = null; if (text) { try { data = JSON.parse(text); } catch {} } if (!response.ok) {
         throw new Error(data.error || "Erreur création module");
       }
 
@@ -1923,7 +1926,7 @@ function FormationManager({ initialModules = [] }) {
       await refresh();
 
     } catch (error) {
-      alert(error.message);
+      console.error(error.message);
     } finally {
       setLoading(false);
     }
@@ -1945,6 +1948,7 @@ function FormationManager({ initialModules = [] }) {
 
       const response = await fetch("/api/admin/lessons", {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json"
         },
@@ -1957,9 +1961,9 @@ function FormationManager({ initialModules = [] }) {
         })
       });
 
-      const data = await response.json();
+      const text = await response.text();
 
-      if (!response.ok) {
+      let data = null; if (text) { try { data = JSON.parse(text); } catch {} } if (!response.ok) {
         throw new Error(data.error || "Erreur création séance");
       }
 
@@ -1972,7 +1976,7 @@ function FormationManager({ initialModules = [] }) {
       await refresh();
 
     } catch (error) {
-      alert(error.message);
+      console.error(error.message);
     } finally {
       setLoading(false);
     }
@@ -2006,9 +2010,9 @@ function FormationManager({ initialModules = [] }) {
         })
       });
 
-      const data = await response.json();
+      const text = await response.text();
 
-      if (!response.ok) {
+      let data = null; if (text) { try { data = JSON.parse(text); } catch {} } if (!response.ok) {
         throw new Error(data.error || "Erreur ajout vidéo");
       }
 
@@ -2022,7 +2026,7 @@ function FormationManager({ initialModules = [] }) {
       await refresh();
 
     } catch (error) {
-      alert(error.message);
+      console.error(error.message);
     } finally {
       setLoading(false);
     }
@@ -2055,9 +2059,9 @@ function FormationManager({ initialModules = [] }) {
         })
       });
 
-      const data = await response.json();
+      const text = await response.text();
 
-      if (!response.ok) {
+      let data = null; if (text) { try { data = JSON.parse(text); } catch {} } if (!response.ok) {
         throw new Error(data.error || "Erreur ajout support");
       }
 
@@ -2072,7 +2076,7 @@ function FormationManager({ initialModules = [] }) {
       await refresh();
 
     } catch (error) {
-      alert(error.message);
+      console.error(error.message);
     } finally {
       setLoading(false);
     }
@@ -2569,6 +2573,20 @@ function FormationManager({ initialModules = [] }) {
         ))}
       </div>
       
+      {formError && (
+        <div style={{
+          margin: "16px 0",
+          padding: "14px 18px",
+          borderRadius: "12px",
+          background: "#fef2f2",
+          color: "#c0392b",
+          fontSize: "14px",
+          fontWeight: 600
+        }}>
+          {formError}
+        </div>
+      )}
+
       {editingLesson && (
         <LessonEditor
           lesson={editingLesson}
@@ -2594,10 +2612,12 @@ function LessonEditor({ lesson, onClose, onSaved }) {
     lesson.published !== 0
   );
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const [saveSuccess, setSaveSuccess] = useState("");
 
   async function deleteVideo(videoId) {
     if (!videoId) {
-      alert("Impossible de supprimer cette vidéo : ID manquant.");
+      setSaveError("Impossible de supprimer cette vidéo : ID manquant.");
       return;
     }
 
@@ -2606,6 +2626,7 @@ function LessonEditor({ lesson, onClose, onSaved }) {
     }
 
     try {
+      setSaveError("");
       const response = await fetch(
         `/api/admin/videos/${videoId}`,
         {
@@ -2614,11 +2635,13 @@ function LessonEditor({ lesson, onClose, onSaved }) {
         }
       );
 
-      const data = await response.json();
+      const text = await response.text();
+      let data = null;
+      if (text) { try { data = JSON.parse(text); } catch {} }
 
-      if (!response.ok || !data.success) {
+      if (!response.ok || !data || !data.success) {
         throw new Error(
-          data.error || "Impossible de supprimer la vidéo."
+          (data && data.error) || "Impossible de supprimer la vidéo."
         );
       }
 
@@ -2626,18 +2649,21 @@ function LessonEditor({ lesson, onClose, onSaved }) {
         await onSaved();
       }
     } catch (error) {
-      alert(error.message);
+      setSaveError(error.message);
     }
   }
 
   async function saveLesson() {
     setSaving(true);
+    setSaveError("");
+    setSaveSuccess("");
 
     try {
       const response = await fetch(
         `/api/admin/lessons/${lesson.id}`,
         {
           method: "PATCH",
+          credentials: "include",
           headers: {
             "Content-Type": "application/json"
           },
@@ -2649,21 +2675,23 @@ function LessonEditor({ lesson, onClose, onSaved }) {
         }
       );
 
-      const data = await response.json();
+      const text = await response.text();
+      let data = null;
+      if (text) { try { data = JSON.parse(text); } catch {} }
 
       if (!response.ok) {
         throw new Error(
-          data.error || "Impossible d'enregistrer la séance"
+          (data && data.error) || "Impossible d'enregistrer la séance"
         );
       }
+
+      setSaveSuccess("Modifications enregistrées");
 
       if (onSaved) {
         await onSaved();
       }
-
-      alert("Séance enregistrée.");
     } catch (error) {
-      alert(error.message);
+      setSaveError(error.message);
     } finally {
       setSaving(false);
     }
@@ -2768,6 +2796,32 @@ function LessonEditor({ lesson, onClose, onSaved }) {
             onSaved={onSaved}
           />
 
+          {saveError && (
+            <div style={{
+              padding: "12px 16px",
+              borderRadius: "10px",
+              background: "#fef2f2",
+              color: "#c0392b",
+              fontSize: "14px",
+              fontWeight: 600
+            }}>
+              {saveError}
+            </div>
+          )}
+
+          {saveSuccess && (
+            <div style={{
+              padding: "12px 16px",
+              borderRadius: "10px",
+              background: "#e8f5ee",
+              color: "#287a55",
+              fontSize: "14px",
+              fontWeight: 600
+            }}>
+              {saveSuccess}
+            </div>
+          )}
+
           <button
             className="primaryButton"
             onClick={saveLesson}
@@ -2791,7 +2845,7 @@ function LessonContentManager({ lesson, onSaved }) {
 
   async function deleteVideo(videoId) {
     if (!videoId) {
-      alert("Impossible de supprimer cette vidéo : ID manquant.");
+      console.error("Video ID missing");
       return;
     }
 
@@ -2808,11 +2862,13 @@ function LessonContentManager({ lesson, onSaved }) {
         }
       );
 
-      const data = await response.json();
+      const text = await response.text();
+      let data = null;
+      if (text) { try { data = JSON.parse(text); } catch {} }
 
-      if (!response.ok || !data.success) {
+      if (!response.ok || !data || !data.success) {
         throw new Error(
-          data.error || "Impossible de supprimer la vidéo."
+          (data && data.error) || "Impossible de supprimer la vidéo."
         );
       }
 
@@ -2820,7 +2876,7 @@ function LessonContentManager({ lesson, onSaved }) {
         await onSaved();
       }
     } catch (error) {
-      alert(error.message);
+      console.error(error.message);
     }
   }
 
@@ -2844,12 +2900,12 @@ function LessonContentManager({ lesson, onSaved }) {
     event.preventDefault();
 
     if (!video.title.trim()) {
-      alert("Le titre de la vidéo est requis.");
+      console.error("Video title required");
       return;
     }
 
     if (!video.file && !video.url.trim()) {
-      alert("Sélectionne un fichier MP4 ou renseigne une URL externe.");
+      console.error("File or URL required");
       return;
     }
 
@@ -2876,9 +2932,9 @@ function LessonContentManager({ lesson, onSaved }) {
           }
         );
 
-        const uploadData = await uploadResponse.json();
+        const uploadText = await uploadResponse.text(); let uploadData = null; if (uploadText) { try { uploadData = JSON.parse(uploadText); } catch {} }
 
-        if (!uploadResponse.ok || !uploadData.success) {
+        if (!uploadResponse.ok || !uploadData || !uploadData.success) {
           throw new Error(
             uploadData.error ||
             "Impossible d'importer la vidéo."
@@ -2910,11 +2966,13 @@ function LessonContentManager({ lesson, onSaved }) {
         }
       );
 
-      const data = await response.json();
+      const text = await response.text();
+      let data = null;
+      if (text) { try { data = JSON.parse(text); } catch {} }
 
-      if (!response.ok || !data.success) {
+      if (!response.ok || !data || !data.success) {
         throw new Error(
-          data.error ||
+          (data && data.error) ||
           "Impossible d'enregistrer la vidéo."
         );
       }
@@ -2933,7 +2991,7 @@ function LessonContentManager({ lesson, onSaved }) {
       }
 
     } catch (error) {
-      alert(error.message);
+      console.error(error.message);
     } finally {
       setSaving(false);
     }
@@ -2943,12 +3001,12 @@ function LessonContentManager({ lesson, onSaved }) {
     event.preventDefault();
 
     if (!resource.title.trim()) {
-      alert("Merci d'indiquer un titre pour le support.");
+      console.error("Resource title required");
       return;
     }
 
     if (!resource.file && !resource.url.trim()) {
-      alert("Sélectionne un fichier ou indique une URL.");
+      console.error("File or URL required");
       return;
     }
 
@@ -2978,13 +3036,11 @@ function LessonContentManager({ lesson, onSaved }) {
           }
         );
 
-        const uploadData =
-          await uploadResponse.json();
+        const uploadText = await uploadResponse.text();
+        let uploadData = null;
+        if (uploadText) { try { uploadData = JSON.parse(uploadText); } catch {} }
 
-        if (
-          !uploadResponse.ok ||
-          !uploadData.success
-        ) {
+        if (!uploadResponse.ok || !uploadData || !uploadData.success) {
           throw new Error(
             uploadData.error ||
             "Impossible d'importer le document."
@@ -3018,12 +3074,13 @@ function LessonContentManager({ lesson, onSaved }) {
         }
       );
 
-      const data =
-        await response.json();
+      const text = await response.text();
+      let data = null;
+      if (text) { try { data = JSON.parse(text); } catch {} }
 
       if (!response.ok) {
         throw new Error(
-          data.error ||
+          (data && data.error) ||
           "Impossible d'ajouter le support."
         );
       }
@@ -3043,16 +3100,7 @@ function LessonContentManager({ lesson, onSaved }) {
       }
 
     } catch (error) {
-      console.error(
-        "Erreur ajout support :",
-        error
-      );
-
-      alert(
-        error.message ||
-        "Impossible d'ajouter le support."
-      );
-
+      console.error("Erreur ajout support :", error.message);
     } finally {
       setSaving(false);
     }
@@ -5653,7 +5701,7 @@ function StudentPortalApp() {
 
       const data = await response.json();
 
-      if (!response.ok || !data.success) {
+      if (!response.ok || !data || !data.success) {
         throw new Error(data.error || "Email ou mot de passe incorrect.");
       }
 

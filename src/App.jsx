@@ -5749,6 +5749,9 @@ function StudentPortalApp() {
     setAuthenticated(false);
     setUser(null);
     setFormation(null);
+    setCompleted([]);
+    setStudentPage("dashboard");
+    window.history.replaceState(null, "", "/student");
   }
 
   if (loading) {
@@ -6502,31 +6505,69 @@ function StudentPortalApp() {
 
 
 function AdminApp() {
-  async function logout() {
-    try {
-      await fetch(
-        "/api/auth/logout",
-        {
-          method: "POST",
-          credentials: "include"
-        }
-      );
-    } catch (err) {
-      console.error(err);
-    }
-
-    window.location.href = "/";
-  }
+  const [authLoading, setAuthLoading] = useState(true);
+  const [authed, setAuthed] = useState(false);
+  const [authUser, setAuthUser] = useState(null);
+  const [authError, setAuthError] = useState("");
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginLoading, setLoginLoading] = useState(false);
 
   const [page, setPage] = useState("dashboard");
   const [platformPage, setPlatformPage] = useState("home");
   const [activeModuleId, setActiveModuleId] = useState(1);
   const [initialLessonId, setInitialLessonId] = useState(null);
-
-  // Catalogue CMS/API — les données réelles sont intégrées au build
-  // via content-export.json. On les charge immédiatement, puis on tente
-  // de les rafraîchir depuis l'API si elle est disponible.
   const [apiModules, setApiModules] = useState(() => getFallbackModules());
+
+  const [completed, setCompleted] = useState(() => {
+    try {
+      const saved = localStorage.getItem("fcs-completed-lessons");
+      return saved ? JSON.parse(saved) : initialCompleted;
+    } catch {
+      return initialCompleted;
+    }
+  });
+
+  async function checkAuth() {
+    setAuthLoading(true);
+    try {
+      const res = await fetch("/api/auth/me", { credentials: "include" });
+      if (!res.ok) {
+        setAuthed(false);
+        setAuthUser(null);
+        return;
+      }
+      const data = await res.json();
+      if (data.success && data.authenticated) {
+        if (data.user.role === "student") {
+          window.location.href = "/student";
+          return;
+        }
+        setAuthed(true);
+        setAuthUser(data.user);
+      } else {
+        setAuthed(false);
+        setAuthUser(null);
+      }
+    } catch (err) {
+      console.error("Auth check failed:", err);
+      setAuthed(false);
+      setAuthUser(null);
+    } finally {
+      setAuthLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(
+      "fcs-completed-lessons",
+      JSON.stringify(completed)
+    );
+  }, [completed]);
 
   useEffect(() => {
     let cancelled = false;
@@ -6596,25 +6637,45 @@ function AdminApp() {
     };
   }, []);
 
-  const [completed, setCompleted] = useState(() => {
+  async function handleAdminLogin(event) {
+    event.preventDefault();
+    setLoginLoading(true);
+    setAuthError("");
     try {
-      const saved =
-        localStorage.getItem("fcs-completed-lessons");
-
-      return saved
-        ? JSON.parse(saved)
-        : initialCompleted;
-    } catch {
-      return initialCompleted;
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: loginEmail, password: loginPassword })
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Email ou mot de passe incorrect.");
+      }
+      setLoginEmail("");
+      setLoginPassword("");
+      await checkAuth();
+    } catch (err) {
+      setAuthError(err.message || "Impossible de se connecter.");
+    } finally {
+      setLoginLoading(false);
     }
-  });
+  }
 
-  useEffect(() => {
-    localStorage.setItem(
-      "fcs-completed-lessons",
-      JSON.stringify(completed)
-    );
-  }, [completed]);
+  async function logout() {
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include"
+      });
+    } catch (err) {
+      console.error(err);
+    }
+
+    setAuthed(false);
+    setAuthUser(null);
+    setPage("dashboard");
+  }
 
   function toggleCompleted(id) {
     setCompleted(current =>
@@ -6654,10 +6715,121 @@ function AdminApp() {
     window.scrollTo(0,0);
   }
 
-  const modules =
-    Array.isArray(apiModules)
-      ? apiModules
-      : [];
+  if (authLoading) {
+    return (
+      <div style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#f5f7fa",
+        fontFamily: "Inter, system-ui, sans-serif"
+      }}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{
+            width: "46px", height: "46px", borderRadius: "50%",
+            border: "4px solid #dfe6ed", borderTopColor: "#f1bd3e",
+            margin: "0 auto 18px",
+            animation: "spin 1s linear infinite"
+          }} />
+          <strong style={{ color: "#09233d" }}>Chargement...</strong>
+        </div>
+      </div>
+    );
+  }
+
+  if (!authed) {
+    return (
+      <div style={{
+        minHeight: "100vh",
+        background: "linear-gradient(135deg, #071c31 0%, #123c61 100%)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "24px",
+        fontFamily: "Inter, system-ui, sans-serif"
+      }}>
+        <div style={{
+          width: "100%", maxWidth: "460px",
+          background: "#fff", borderRadius: "24px",
+          padding: "42px",
+          boxShadow: "0 30px 80px rgba(0,0,0,.25)"
+        }}>
+          <div style={{ textAlign: "center", marginBottom: "34px" }}>
+            <div style={{
+              width: "58px", height: "58px", borderRadius: "16px",
+              background: "#09233d", color: "#f1bd3e",
+              display: "flex", alignItems: "center",
+              justifyContent: "center",
+              fontSize: "22px", fontWeight: 900,
+              margin: "0 auto 16px"
+            }}>
+              FCS
+            </div>
+            <h1 style={{ margin: "0 0 8px", color: "#09233d", fontSize: "24px" }}>
+              Football Coach System
+            </h1>
+            <p style={{ margin: 0, color: "#718096", fontSize: "14px" }}>
+              Espace administrateur — connecte-toi
+            </p>
+          </div>
+
+          {authError && (
+            <div style={{
+              padding: "12px 16px", borderRadius: "10px",
+              background: "#fef2f2", color: "#c0392b",
+              fontSize: "14px", marginBottom: "18px"
+            }}>
+              {authError}
+            </div>
+          )}
+
+          <form onSubmit={handleAdminLogin} style={{ display: "grid", gap: "16px" }}>
+            <input
+              type="email"
+              placeholder="Email"
+              value={loginEmail}
+              onChange={e => setLoginEmail(e.target.value)}
+              required
+              style={{
+                width: "100%", padding: "14px 16px",
+                border: "1px solid #dfe5eb", borderRadius: "12px",
+                fontSize: "15px", outline: "none",
+                boxSizing: "border-box"
+              }}
+            />
+            <input
+              type="password"
+              placeholder="Mot de passe"
+              value={loginPassword}
+              onChange={e => setLoginPassword(e.target.value)}
+              required
+              style={{
+                width: "100%", padding: "14px 16px",
+                border: "1px solid #dfe5eb", borderRadius: "12px",
+                fontSize: "15px", outline: "none",
+                boxSizing: "border-box"
+              }}
+            />
+            <button
+              type="submit"
+              disabled={loginLoading}
+              style={{
+                border: 0, borderRadius: "12px", padding: "14px",
+                background: "#f1bd3e", color: "#09233d",
+                fontWeight: 800, fontSize: "15px",
+                cursor: "pointer"
+              }}
+            >
+              {loginLoading ? "Connexion..." : "Se connecter"}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  const modules = Array.isArray(apiModules) ? apiModules : [];
 
   const activeModule = useMemo(
     () => modules.find(m => m.id === activeModuleId),

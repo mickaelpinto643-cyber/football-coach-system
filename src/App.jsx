@@ -5660,10 +5660,30 @@ function StudentPortalApp() {
           const data = await formationResponse.json();
           if (data.success && data.formation) {
             setFormation(data.formation);
+          } else {
+            throw new Error("Pas de formation");
           }
+        } else {
+          throw new Error("Formation endpoint: " + formationResponse.status);
         }
       } catch (err) {
-        console.warn("Formation load failed:", err);
+        console.warn("Formation load via /api/student/formation failed, trying /api/content:", err);
+
+        try {
+          const contentResponse = await fetch("/api/content", {
+            credentials: "include"
+          });
+
+          if (contentResponse.ok) {
+            const contentData = await contentResponse.json();
+
+            if (contentData.formation) {
+              setFormation(contentData);
+            }
+          }
+        } catch (err2) {
+          console.warn("Content fallback also failed:", err2);
+        }
       }
 
     } catch (err) {

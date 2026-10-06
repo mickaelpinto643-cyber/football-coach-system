@@ -29,6 +29,7 @@ function StudentFormation({ formation, modules, completed, onToggleCompleted, us
   const [activeLesson, setActiveLesson] = useState(null);
   const [activeModule, setActiveModule] = useState(null);
   const [activeTab, setActiveTab] = useState("presentation");
+  const [activeVideoIndex, setActiveVideoIndex] = useState(0);
   const [notes, setNotes] = useState(() => {
     try {
       const key = `fcs-notes-${user?.id || "anon"}`;
@@ -53,6 +54,7 @@ function StudentFormation({ formation, modules, completed, onToggleCompleted, us
     setActiveModule(module);
     setActiveLesson(lesson);
     setActiveTab("presentation");
+    setActiveVideoIndex(0);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -256,8 +258,8 @@ function StudentFormation({ formation, modules, completed, onToggleCompleted, us
             }}>
               {videos.length > 0 ? (
                 <video
-                  key={videos[0].id}
-                  src={videos[0].url}
+                  key={videos[activeVideoIndex]?.id || videos[0].id}
+                  src={videos[activeVideoIndex]?.url || videos[0].url}
                   controls
                   style={{ width: "100%", height: "100%", objectFit: "contain" }}
                 />
@@ -268,6 +270,39 @@ function StudentFormation({ formation, modules, completed, onToggleCompleted, us
                 </div>
               )}
             </div>
+
+            {/* VIDEO SELECTOR for multi-part lessons */}
+            {videos.length > 1 && (
+              <div style={{
+                display: "flex",
+                gap: "8px",
+                marginBottom: "20px",
+                flexWrap: "wrap"
+              }}>
+                {videos.map((v, i) => (
+                  <button
+                    key={v.id}
+                    onClick={() => setActiveVideoIndex(i)}
+                    style={{
+                      padding: "8px 16px",
+                      borderRadius: "10px",
+                      border: i === activeVideoIndex ? "2px solid #f1bd3e" : "1px solid #dfe5eb",
+                      background: i === activeVideoIndex ? "#fff7df" : "#fff",
+                      color: i === activeVideoIndex ? "#09233d" : "#6b7a8c",
+                      fontWeight: 700,
+                      fontSize: "13px",
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px"
+                    }}
+                  >
+                    <PlayCircle size={14} />
+                    {v.title || `Partie ${i + 1}`}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {/* LESSON TITLE + NAVIGATION */}
             <div style={{

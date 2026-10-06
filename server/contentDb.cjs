@@ -161,211 +161,118 @@ function importInitialCatalogue() {
     };
   }
 
-  const home = process.env.HOME || "";
+  const exportPath = path.resolve(process.cwd(), "content-export.json");
 
-  const candidates = [
-    PathSafe(`${home}/Downloads/football-coach-system-videos-FINAL-36.json`),
-    PathSafe(`${process.cwd()}/football-coach-system-videos-FINAL-36.json`)
-  ];
-
-  const source = candidates.find(p => fs.existsSync(p));
-
-  if (!source) {
-    console.log("ℹ️ FINAL-36.json non trouvé.");
-    console.log("ℹ️ La base est créée, import reporté.");
+  if (!fs.existsSync(exportPath)) {
+    console.log("ℹ️ content-export.json non trouvé. Base créée sans catalogue.");
     return;
   }
 
-  let raw;
+  let data;
 
   try {
-    raw = JSON.parse(
-      fs.readFileSync(source, "utf8")
-    );
+    data = JSON.parse(fs.readFileSync(exportPath, "utf8"));
   } catch (error) {
-    console.log(
-      "⚠️ Impossible de lire FINAL-36.json :",
-      error.message
-    );
+    console.log("⚠️ Impossible de lire content-export.json :", error.message);
     return;
   }
 
-  const insertModule = db.prepare(`
-    INSERT INTO modules
-      (formation_id, module_key, number, title, position)
-    VALUES (?, ?, ?, ?, ?)
-    ON CONFLICT(formation_id, module_key)
-    DO UPDATE SET
-      number = excluded.number,
-      title = excluded.title,
-      position = excluded.position
+  const archivedKeys = (data._meta && data._meta.archived_modules) || [];
+  const activeModules = (data.modules || []).filter(m => !archivedKeys.includes(m.module_key));
+
+  if (!activeModules.length) {
+    console.log("ℹ️ Aucun module actif dans content-export.json.");
+    return;
+  }
+
+  const upsertFormation = db.prepare(`
+    INSERT OR REPLACE INTO formations
+      (id, title, description, image, published, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `);
 
-  const getModule = db.prepare(`
-    SELECT id
-    FROM modules
-    WHERE formation_id = ?
-      AND module_key = ?
+  const upsertModule = db.prepare(`
+    INSERT OR REPLACE INTO modules
+      (id, formation_id, module_key, number, title, description, image, position, published)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
-  const insertLesson = db.prepare(`
-    INSERT INTO lessons
-      (module_id, lesson_key, title, position)
-    VALUES (?, ?, ?, ?)
-    ON CONFLICT(module_id, lesson_key)
-    DO UPDATE SET
-      title = excluded.title,
-      position = excluded.position
+  const upsertLesson = db.prepare(`
+    INSERT OR REPLACE INTO lessons
+      (id, module_id, lesson_key, title, description, position, published)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `);
 
-  const getLesson = db.prepare(`
-    SELECT id
-    FROM lessons
-    WHERE module_id = ?
-      AND lesson_key = ?
+  const upsertVideo = db.prepare(`
+    INSERT OR REPLACE INTO videos
+      (id, lesson_id, title, url, position, published, duration)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `);
 
-  const insertVideo = db.prepare(`
-    INSERT INTO videos
-      (lesson_id, title, url, position, published)
-    VALUES (?, ?, ?, ?, 1)
+  const upsertResource = db.prepare(`
+    INSERT OR REPLACE INTO resources
+      (id, lesson_id, type, title, url, content, position, published)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `);
-
-  let imported = 0;
 
   const transaction = db.transaction(() => {
 
-    for (const item of raw) {
-
-      const lessonName = String(
-        item.lesson ||
-        item.title ||
-        ""
-      ).trim();
-
-      const match = lessonName.match(
-        /^(\d+)\.(\d+)/
+    const f = (data.formations || [])[0];
+    if (f) {
+      upsertFormation.run(
+        f.id, f.title, f.description || "", f.image || "",
+        f.published ?? 1, f.created_at || "", f.updated_at || ""
       );
-
-      if (!match) continue;
-
-      const moduleNumber = Number(match[1]);
-      const lessonNumber = Number(match[2]);
-
-      const moduleKey =
-        `m${moduleNumber}`;
-
-      const lessonKey =
-        `m${moduleNumber}-l${lessonNumber}`;
-
-      insertModule.run(
-        formation.id,
-        moduleKey,
-        String(moduleNumber),
-        `Module ${moduleNumber}`,
-        moduleNumber
-      );
-
-      const module = getModule.get(
-        formation.id,
-        moduleKey
-      );
-
-      const lessonTitle = lessonName
-        .replace(
-          /^\d+\.\d+\s*/,
-          ""
-        )
-        .replace(
-          /\s*\(PARTIE\s+\d+\)\s*$/i,
-          ""
-        )
-        .trim();
-
-      insertLesson.run(
-        module.id,
-        lessonKey,
-        lessonTitle,
-        lessonNumber
-      );
-
-      const lesson = getLesson.get(
-        module.id,
-        lessonKey
-      );
-
-      const url = cleanUrl(
-        item.video ||
-        item.url ||
-        item.video_url ||
-        ""
-      );
-
-      if (lessonName.startsWith("1.1")) {
-        console.log("===== DEBUG 1.1 =====");
-        console.log("RAW VIDEO :", JSON.stringify(item.video));
-        console.log("CLEAN URL :", JSON.stringify(url));
-      }
-
-      if (!url) continue;
-
-      const partMatch =
-        lessonName.match(
-          /\(PARTIE\s+(\d+)\)/i
-        );
-
-      const part =
-        partMatch
-          ? Number(partMatch[1])
-          : 1;
-
-      const existing = db.prepare(`
-        SELECT id
-        FROM videos
-        WHERE lesson_id = ?
-          AND title = ?
-        LIMIT 1
-      `).get(
-        lesson.id,
-        `Partie ${part}`
-      );
-
-      if (existing) {
-
-        db.prepare(`
-          UPDATE videos
-          SET url = ?,
-              position = ?,
-              published = 1
-          WHERE id = ?
-        `).run(
-          url,
-          part,
-          existing.id
-        );
-
-        imported++;
-
-      } else {
-
-        insertVideo.run(
-          lesson.id,
-          `Partie ${part}`,
-          url,
-          part
-        );
-
-        imported++;
-      }
     }
+
+    const activeModuleIds = new Set();
+    const activeLessonIds = new Set();
+
+    for (const m of activeModules) {
+      upsertModule.run(
+        m.id, m.formation_id, m.module_key, m.number || "",
+        m.title, m.description || "", m.image || "",
+        m.position || 0, m.published ?? 1
+      );
+      activeModuleIds.add(m.id);
+    }
+
+    for (const l of (data.lessons || [])) {
+      if (!activeModuleIds.has(l.module_id)) continue;
+      upsertLesson.run(
+        l.id, l.module_id, l.lesson_key, l.title,
+        l.description || "", l.position || 0, l.published ?? 1
+      );
+      activeLessonIds.add(l.id);
+    }
+
+    let videoCount = 0;
+    for (const v of (data.videos || [])) {
+      if (!activeLessonIds.has(v.lesson_id)) continue;
+      upsertVideo.run(
+        v.id, v.lesson_id, v.title, v.url,
+        v.position || 0, v.published ?? 1, v.duration || 0
+      );
+      videoCount++;
+    }
+
+    for (const r of (data.resources || [])) {
+      if (r.lesson_id && !activeLessonIds.has(r.lesson_id)) continue;
+      upsertResource.run(
+        r.id, r.lesson_id || null, r.type, r.title,
+        r.url || "", r.content || "", r.position || 0, r.published ?? 1
+      );
+    }
+
+    console.log("");
+    console.log("✅ IMPORT CATALOGUE TERMINÉ");
+    console.log("📁 Source : content-export.json");
+    console.log("📦 Modules :", activeModules.length);
+    console.log("📝 Leçons :", activeLessonIds.size);
+    console.log("🎬 Vidéos :", videoCount);
   });
 
   transaction();
-
-  console.log("");
-  console.log("✅ IMPORT CATALOGUE TERMINÉ");
-  console.log("🎬 Vidéos importées :", imported);
-  console.log("📁 Source :", source);
 }
 
 function PathSafe(value) {

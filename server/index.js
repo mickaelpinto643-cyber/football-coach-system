@@ -2658,26 +2658,48 @@ app.get("/api/student/formation", (req, res) => {
       });
     }
 
-    const enrollment = authDb.prepare(`
-      SELECT
-        e.id,
-        e.user_id,
-        e.formation_id,
-        e.status,
-        e.stripe_customer_id,
-        e.stripe_checkout_session_id,
-        e.stripe_subscription_id
-      FROM enrollments e
-      WHERE e.user_id = ?
-        AND e.status = 'active'
-      ORDER BY e.id
-      LIMIT 1
-    `).get(user.id);
+    let formationId = null;
+    let enrollment = null;
 
-    if (!enrollment) {
-      return res.status(403).json({
+    if (user.role === "admin") {
+      const anyFormation = authDb.prepare(
+        "SELECT id FROM formations WHERE published = 1 ORDER BY id LIMIT 1"
+      ).get();
+
+      if (anyFormation) {
+        formationId = anyFormation.id;
+      }
+    } else {
+      enrollment = authDb.prepare(`
+        SELECT
+          e.id,
+          e.user_id,
+          e.formation_id,
+          e.status,
+          e.stripe_customer_id,
+          e.stripe_checkout_session_id,
+          e.stripe_subscription_id
+        FROM enrollments e
+        WHERE e.user_id = ?
+          AND e.status = 'active'
+        ORDER BY e.id
+        LIMIT 1
+      `).get(user.id);
+
+      if (!enrollment) {
+        return res.status(403).json({
+          success: false,
+          error: "Aucune formation active associée à ce compte."
+        });
+      }
+
+      formationId = enrollment.formation_id;
+    }
+
+    if (!formationId) {
+      return res.status(404).json({
         success: false,
-        error: "Aucune formation active associée à ce compte."
+        error: "Aucune formation disponible."
       });
     }
 
@@ -2691,7 +2713,7 @@ app.get("/api/student/formation", (req, res) => {
       FROM formations
       WHERE id = ?
         AND published = 1
-    `).get(enrollment.formation_id);
+    `).get(formationId);
 
     if (!formation) {
       return res.status(404).json({
@@ -2768,11 +2790,11 @@ app.get("/api/student/formation", (req, res) => {
         last_name: user.last_name
       },
 
-      enrollment: {
+      enrollment: enrollment ? {
         id: enrollment.id,
         status: enrollment.status,
         formation_id: enrollment.formation_id
-      },
+      } : null,
 
       formation: {
         ...formation,

@@ -32,7 +32,7 @@
       "formation_id": 1,
       "module_key": "welcome",
       "number": "0",
-      "title": "Bienvenue",
+      "title": "BIENVENUE DANS CETTE FORMATION",
       "description": "Message de bienvenue et presentation de la formation",
       "image": "",
       "position": 0,
@@ -43,7 +43,7 @@
       "formation_id": 1,
       "module_key": "m1",
       "number": "1",
-      "title": "Module 1",
+      "title": "MODULE 1 : LE MÉTIER D’ENTRAÎNEUR",
       "description": "",
       "image": "",
       "position": 1,
@@ -54,7 +54,7 @@
       "formation_id": 1,
       "module_key": "m2",
       "number": "2",
-      "title": "Module 2",
+      "title": "MODULE 2 : LE FOOTBALL ET LES PRINCIPES DU JEU",
       "description": "",
       "image": "",
       "position": 2,
@@ -65,7 +65,7 @@
       "formation_id": 1,
       "module_key": "m3",
       "number": "3",
-      "title": "Construire son modèle de jeu : créer l’identité de son équipe",
+      "title": "MODULE 3 : CONSTRUIRE SON MODÈLE DE JEU",
       "description": "",
       "image": "",
       "position": 3,
@@ -99,7 +99,7 @@
       "id": 2002,
       "module_id": 2001,
       "lesson_key": "welcome-l1",
-      "title": "Bienvenue dans Football Coach System",
+      "title": "Félicitations et bienvenue dans ta formation",
       "description": "Presentation de la formation et de votre parcours.",
       "position": 1,
       "published": 1
@@ -252,7 +252,7 @@
       "id": 1189,
       "module_id": 1189,
       "lesson_key": "m3-l1",
-      "title": "Première séance",
+      "title": "COMPRENDRE ET CONSTRUIRE SON MODÈLE DE JEU",
       "description": "",
       "position": 1,
       "published": 1
@@ -346,6 +346,15 @@
       "description": "",
       "position": 5,
       "published": 0
+    },
+    {
+      "id": 1190,
+      "module_id": 1189,
+      "lesson_key": "m3-l2",
+      "title": "DIAGNOSTIQUER SON ÉQUIPE",
+      "description": "",
+      "position": 2,
+      "published": 1
     }
   ],
   "videos": [

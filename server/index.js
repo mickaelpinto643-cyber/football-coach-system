@@ -2793,6 +2793,248 @@ app.get("/api/student/formation", (req, res) => {
   }
 });
 
+/* =========================================================
+   ADMIN — APPRENANTS
+   ========================================================= */
+
+app.get("/api/admin/learners", (req, res) => {
+  const admin = requireAdmin(req, res);
+  if (!admin) return;
+
+  try {
+    const learners = authDb.prepare(`
+      SELECT
+        u.id,
+        u.email,
+        u.first_name,
+        u.last_name,
+        u.role,
+        u.status,
+        u.created_at,
+        (
+          SELECT MAX(s.created_at)
+          FROM sessions s
+          WHERE s.user_id = u.id
+        ) AS last_activity
+      FROM users u
+      WHERE u.role = 'student'
+      ORDER BY u.created_at DESC
+    `).all();
+
+    const contentDb = new Database(DB_PATH);
+
+    const publishedLessons = contentDb.prepare(`
+      SELECT l.id, l.module_id
+      FROM lessons l
+      JOIN modules m ON m.id = l.module_id
+      WHERE l.published = 1 AND m.published = 1
+    `).all();
+
+    const totalPublishedLessons = publishedLessons.length;
+
+    const result = learners.map(u => {
+      const progressRows = contentDb.prepare(`
+        SELECT lesson_id, completed
+        FROM progress
+        WHERE user_key = ?
+      `).all(String(u.id));
+
+      const completedCount = progressRows.filter(p => p.completed === 1).length;
+      const progressPct = totalPublishedLessons > 0
+        ? Math.round((completedCount / totalPublishedLessons) * 100)
+        : 0;
+
+      return {
+        ...u,
+        completed_lessons: completedCount,
+        total_lessons: totalPublishedLessons,
+        progress: progressPct,
+        quizzes_taken: 0,
+        avg_score: null,
+        last_activity: u.last_activity || u.created_at
+      };
+    });
+
+    contentDb.close();
+
+    return res.json({
+      success: true,
+      learners: result
+    });
+
+  } catch (error) {
+    console.error("GET /api/admin/learners:", error);
+    return res.status(500).json({
+      success: false,
+      error: "Impossible de charger les apprenants."
+    });
+  }
+});
+
+app.get("/api/admin/learners/:id", (req, res) => {
+  const admin = requireAdmin(req, res);
+  if (!admin) return;
+
+  try {
+    const learnerId = Number(req.params.id);
+
+    const learner = authDb.prepare(`
+      SELECT id, email, first_name, last_name, role, status, created_at
+      FROM users
+      WHERE id = ? AND role = 'student'
+    `).get(learnerId);
+
+    if (!learner) {
+      return res.status(404).json({
+        success: false,
+        error: "Apprenant introuvable."
+      });
+    }
+
+    const lastActivity = authDb.prepare(`
+      SELECT MAX(s.created_at) AS last_activity
+      FROM sessions s
+      WHERE s.user_id = ?
+    `).get(learnerId);
+
+    const contentDb = new Database(DB_PATH);
+
+    const modules = contentDb.prepare(`
+      SELECT m.id, m.title, m.module_key, m.number
+      FROM modules m
+      WHERE m.published = 1
+      ORDER BY m.position, m.id
+    `).all();
+
+    const moduleProgress = modules.map(m => {
+      const lessons = contentDb.prepare(`
+        SELECT l.id
+        FROM lessons l
+        WHERE l.module_id = ? AND l.published = 1
+      `).all(m.id);
+
+      const completed = contentDb.prepare(`
+        SELECT COUNT(*) AS cnt
+        FROM progress p
+        WHERE p.user_key = ?
+          AND p.completed = 1
+          AND p.lesson_id IN (${lessons.length ? lessons.map(() => '?').join(',') : '0'})
+      `).get(
+        String(learnerId),
+        ...lessons.map(l => l.id)
+      );
+
+      const done = completed ? completed.cnt : 0;
+      const total = lessons.length;
+      return {
+        title: m.title,
+        done,
+        total,
+        pct: total > 0 ? Math.round((done / total) * 100) : 0
+      };
+    });
+
+    const totalLessons = moduleProgress.reduce((s, m) => s + m.total, 0);
+    const completedLessons = moduleProgress.reduce((s, m) => s + m.done, 0);
+    const overallProgress = totalLessons > 0
+      ? Math.round((completedLessons / totalLessons) * 100)
+      : 0;
+
+    contentDb.close();
+
+    return res.json({
+      success: true,
+      learner: {
+        ...learner,
+        last_activity: lastActivity?.last_activity || learner.created_at,
+        progress: overallProgress,
+        completed_lessons: completedLessons,
+        total_lessons: totalLessons,
+        module_progress: moduleProgress,
+        quizzes_taken: 0,
+        avg_score: null,
+        game_model_progress: 0
+      }
+    });
+
+  } catch (error) {
+    console.error("GET /api/admin/learners/:id:", error);
+    return res.status(500).json({
+      success: false,
+      error: "Impossible de charger la fiche apprenant."
+    });
+  }
+});
+
+app.post("/api/admin/learners", (req, res) => {
+  const admin = requireAdmin(req, res);
+  if (!admin) return;
+
+  try {
+    const {
+      first_name = "",
+      last_name = "",
+      email,
+      password,
+      formation_id = 1
+    } = req.body || {};
+
+    const cleanEmail = String(email || "").trim().toLowerCase();
+
+    if (!cleanEmail || !password) {
+      return res.status(400).json({
+        success: false,
+        error: "Email et mot de passe obligatoires."
+      });
+    }
+
+    if (password.length < 8) {
+      return res.status(400).json({
+        success: false,
+        error: "Le mot de passe doit contenir au moins 8 caractères."
+      });
+    }
+
+    const existing = authDb.prepare(
+      "SELECT id FROM users WHERE email = ?"
+    ).get(cleanEmail);
+
+    if (existing) {
+      return res.status(409).json({
+        success: false,
+        error: "Un compte existe déjà avec cet email."
+      });
+    }
+
+    const passwordHash = hashPassword(password);
+
+    const result = authDb.prepare(`
+      INSERT INTO users (email, password_hash, first_name, last_name, role, status)
+      VALUES (?, ?, ?, ?, 'student', 'active')
+    `).run(cleanEmail, passwordHash, first_name, last_name);
+
+    const userId = result.lastInsertRowid;
+
+    authDb.prepare(`
+      INSERT INTO enrollments (user_id, formation_id, status)
+      VALUES (?, ?, 'active')
+    `).run(userId, formation_id);
+
+    return res.status(201).json({
+      success: true,
+      id: userId
+    });
+
+  } catch (error) {
+    console.error("POST /api/admin/learners:", error);
+    return res.status(500).json({
+      success: false,
+      error: "Impossible de créer l'apprenant."
+    });
+  }
+});
+
+
 const { registerContentRoutes } = require("./contentDb.cjs");
 
 registerContentRoutes(app);

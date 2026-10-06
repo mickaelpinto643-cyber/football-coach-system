@@ -22,6 +22,8 @@ import StudentFormation from "./components/StudentFormation";
 import QuizAdmin from "./components/QuizAdmin";
 import { LivesReplaysAdmin, LivesReplaysStudent } from "./components/LivesReplays";
 import { GameModelStudent, GAME_MODEL_SECTIONS } from "./components/GameModel";
+import LearnersAdmin from "./components/LearnersAdmin";
+import ProgressAdmin from "./components/ProgressAdmin";
 
 
 function normalizeVideoUrl(value) {
@@ -59,12 +61,16 @@ function normalizeApiModules(data) {
           published: lesson.published,
           videos: (lesson.videos || [])
             .filter(v => v.published === 1 || v.published === undefined)
-            .map(video => ({
-              ...video,
-              moduleId: module.id,
-              lessonId: lesson.id,
-              url: normalizeVideoUrl(video.url)
-            })),
+            .map(video => {
+              const isMultiPart = (lesson.videos || []).filter(v => v.published !== 0).length > 1;
+              return {
+                ...video,
+                moduleId: module.id,
+                lessonId: lesson.id,
+                url: normalizeVideoUrl(video.url),
+                title: isMultiPart ? video.title : (lesson.title || video.title)
+              };
+            }),
           resources: lesson.resources || []
         }))
     }));
@@ -6371,12 +6377,9 @@ function AdminApp() {
           ) : platformPage === "model-game" ? (
             <ModelGameSection />
           ) : platformPage === "learners" ? (
-            <PlatformSection
-              page={platformPage}
-              navigate={navigatePlatform}
-              modules={modules}
-              completed={completed}
-            />
+            <LearnersAdmin />
+          ) : platformPage === "tracking" ? (
+            <ProgressAdmin />
           ) : (
             <PlatformSection
               page={platformPage}

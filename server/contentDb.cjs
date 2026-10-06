@@ -57,12 +57,24 @@ CREATE TABLE IF NOT EXISTS videos (
   position INTEGER DEFAULT 0,
   published INTEGER DEFAULT 1,
   duration INTEGER DEFAULT 0,
+  transcript TEXT DEFAULT '',
+  transcript_status TEXT DEFAULT 'none',
+  transcript_updated_at TEXT DEFAULT '',
   FOREIGN KEY (lesson_id) REFERENCES lessons(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS video_transcripts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  video_id INTEGER NOT NULL UNIQUE,
+  transcript TEXT DEFAULT '',
+  status TEXT DEFAULT 'none',
+  updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (video_id) REFERENCES videos(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS resources (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  lesson_id INTEGER NOT NULL,
+  lesson_id INTEGER,
   type TEXT NOT NULL,
   title TEXT NOT NULL,
   url TEXT DEFAULT '',
@@ -461,6 +473,32 @@ function registerContentRoutes(app) {
 
 
 
+  app.get("/api/admin/documents", (req, res) => {
+    const documents = db.prepare(`
+      SELECT
+        r.id,
+        r.lesson_id,
+        r.type,
+        r.title,
+        r.url,
+        r.content,
+        r.position,
+        r.published,
+        l.title AS lesson_title,
+        m.title AS module_title,
+        m.module_key
+      FROM resources r
+      LEFT JOIN lessons l ON l.id = r.lesson_id
+      LEFT JOIN modules m ON m.id = l.module_id
+      ORDER BY r.id DESC
+    `).all();
+
+    res.json({
+      success: true,
+      documents
+    });
+  });
+
   app.get("/api/content", (req, res) => {
 
     const formation = db.prepare(`
@@ -819,13 +857,12 @@ function registerContentRoutes(app) {
     } = req.body;
 
     if (
-      !lesson_id ||
       !type ||
       !title
     ) {
       return res.status(400).json({
         error:
-          "lesson_id, type et title sont requis"
+          "type et title sont requis"
       });
     }
 
@@ -841,7 +878,7 @@ function registerContentRoutes(app) {
         )
       VALUES (?, ?, ?, ?, ?, ?)
     `).run(
-      lesson_id,
+      lesson_id || null,
       type,
       title,
       url,

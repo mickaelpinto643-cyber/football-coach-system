@@ -34,24 +34,35 @@ function normalizeVideoUrl(value) {
 }
 
 function normalizeApiModules(data) {
-  return (data.modules || []).map(module => ({
-    id: module.id,
-    number: `MODULE ${module.number}`,
-    title: module.title,
-    image: module.image || "",
-    lessons: (module.lessons || []).map(lesson => ({
-      id: lesson.lesson_key,
-      title: lesson.title,
-      description: lesson.description || "",
-      videos: (lesson.videos || []).map(video => ({
-        ...video,
-        moduleId: module.id,
-        lessonId: lesson.id,
-        url: normalizeVideoUrl(video.url)
-      })),
-      resources: lesson.resources || []
-    }))
-  }));
+  return (data.modules || [])
+    .filter(m => m.published === 1 || m.published === undefined)
+    .map(module => ({
+      id: module.id,
+      number: module.module_key === "welcome" ? "BIENVENUE" : `MODULE ${module.number}`,
+      moduleKey: module.module_key || "",
+      title: module.title,
+      description: module.description || "",
+      image: module.image || "",
+      isWelcome: module.module_key === "welcome",
+      lessons: (module.lessons || [])
+        .filter(l => l.published === 1 || l.published === undefined)
+        .map(lesson => ({
+          id: lesson.lesson_key,
+          numericId: lesson.id,
+          title: lesson.title,
+          description: lesson.description || "",
+          published: lesson.published,
+          videos: (lesson.videos || [])
+            .filter(v => v.published === 1 || v.published === undefined)
+            .map(video => ({
+              ...video,
+              moduleId: module.id,
+              lessonId: lesson.id,
+              url: normalizeVideoUrl(video.url)
+            })),
+          resources: lesson.resources || []
+        }))
+    }));
 }
 
 function getFallbackModules() {
@@ -76,22 +87,26 @@ function getFallbackModules() {
         videos: (videosByLesson[lesson.id] || []).sort(
           (a, b) => (a.position || 0) - (b.position || 0)
         ),
-        resources: []
+        resources: (data.resources || []).filter(r => r.lesson_id === lesson.id)
       });
     }
 
     const apiData = {
       formation: (data.formations || [])[0] || null,
-      modules: (data.modules || []).map(module => ({
-        ...module,
-        lessons: (lessonsByModule[module.id] || []).sort(
-          (a, b) => (a.position || 0) - (b.position || 0)
-        )
-      }))
+      modules: (data.modules || [])
+        .slice()
+        .sort((a, b) => (a.position || 0) - (b.position || 0))
+        .map(module => ({
+          ...module,
+          lessons: (lessonsByModule[module.id] || []).sort(
+            (a, b) => (a.position || 0) - (b.position || 0)
+          )
+        }))
     };
 
     return normalizeApiModules(apiData);
-  } catch {
+  } catch (error) {
+    console.error("getFallbackModules error:", error);
     return [];
   }
 }
@@ -1881,61 +1896,29 @@ function FormationManager({ initialModules = [] }) {
 
   async function refresh() {
     try {
-      const [modulesResponse, lessonsResponse] = await Promise.all([
-        fetch("/api/admin/modules", {
-          credentials: "include"
-        }),
-        fetch("/api/admin/lessons", {
-          credentials: "include"
-        })
-      ]);
+      const response = await fetch("/api/admin/content", {
+        credentials: "include"
+      });
 
-      const modulesData = await modulesResponse.json();
-      const lessonsData = await lessonsResponse.json();
-
-      if (!modulesResponse.ok) {
-        throw new Error(
-          modulesData.error || "Impossible de charger les modules."
-        );
+      if (!response.ok) {
+        throw new Error("Impossible de charger le contenu.");
       }
 
-      if (!lessonsResponse.ok) {
-        throw new Error(
-          lessonsData.error || "Impossible de charger les leçons."
-        );
-      }
+      const data = await response.json();
 
-      const apiModules = Array.isArray(modulesData.modules)
-        ? modulesData.modules
+      const apiModules = Array.isArray(data.modules)
+        ? data.modules
         : [];
 
-      const apiLessons = Array.isArray(lessonsData.lessons)
-        ? lessonsData.lessons
-        : [];
-
-      const lessonsByModule = {};
-
-      for (const lesson of apiLessons) {
-        if (!lessonsByModule[lesson.module_id]) {
-          lessonsByModule[lesson.module_id] = [];
-        }
-
-        lessonsByModule[lesson.module_id].push({
-          id: lesson.id,
-          lesson_key: lesson.lesson_key,
-          title: lesson.title,
-          description: lesson.description || "",
-          position: lesson.position || 0,
-          published: lesson.published,
-          videos: [],
-          resources: []
-        });
-      }
-
-      const normalizedModules = apiModules.map(module => ({
-        ...module,
-        lessons: lessonsByModule[module.id] || []
-      }));
+      const normalizedModules = apiModules
+        .slice()
+        .sort((a, b) => (a.position || 0) - (b.position || 0))
+        .map(module => ({
+          ...module,
+          lessons: (module.lessons || []).slice().sort(
+            (a, b) => (a.position || 0) - (b.position || 0)
+          )
+        }));
 
       setModules(normalizedModules);
 
@@ -1952,8 +1935,7 @@ function FormationManager({ initialModules = [] }) {
       );
 
     } catch (error) {
-      console.error("CMS refresh error:", error);
-      alert(error.message || "Impossible de charger le CMS.");
+      console.warn("CMS refresh: API indisponible, utilisation des donnees locales", error.message);
     }
   }
 
@@ -2367,184 +2349,287 @@ function FormationManager({ initialModules = [] }) {
             )}
 
             <div className="managerLessons">
-              {(module.lessons || []).map((lesson, lessonIndex) => (
-                <div
-                  key={lesson.id}
-                  className="managerLesson"
-                >
-                  <div className="lessonIdentityRow">
-                    <div className="lessonIdentity">
-                      <div className="lessonNumber">
-                        {String(lesson.position || lessonIndex + 1).padStart(2, "0")}
-                      </div>
-                      <div>
-                      <strong>
-                        {String(lesson.position || lessonIndex + 1).padStart(2, "0")}
-                        {" — "}
-                        {lesson.title}
-                      </strong>
+              {(module.lessons || []).map((lesson, lessonIndex) => {
+                const videoCount = (lesson.videos || []).length;
+                const resourceCount = (lesson.resources || []).length;
+                const isPublished = lesson.published !== 0;
+                const lessonNum = String(lesson.position || lessonIndex + 1).padStart(2, "0");
 
-                      <div className="lessonMeta">
-                        <span className="contentBadge video">
-                          {(lesson.videos || []).length} vidéo(s)
-                        </span>
-                        <span className="contentBadge document">
-                          {(lesson.resources || []).length} support(s)
-                        </span>
-                      </div>
-                      </div>
-                    </div>
-
-                    <button
-                      className="primaryButton"
-                      onClick={() => setEditingLesson(lesson)}
-                    >
-                      Gérer le contenu
-                    </button>
-                  </div>
-
-                  {contentLessonId === lesson.id && (
+                return (
+                  <div
+                    key={lesson.id}
+                    className="managerLesson"
+                    style={{
+                      padding: "20px 24px",
+                      marginBottom: "14px",
+                      borderRadius: "14px",
+                      border: "1px solid #e5eaf0",
+                      background: "#fff",
+                      transition: "box-shadow .15s ease"
+                    }}
+                  >
                     <div
                       style={{
-                        display: "grid",
-                        gridTemplateColumns:
-                          "repeat(auto-fit,minmax(280px,1fr))",
-                        gap: "18px",
-                        marginTop: "18px"
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "flex-start",
+                        gap: "20px",
+                        flexWrap: "wrap"
                       }}
                     >
-                      <form
-                        onSubmit={e => createVideo(e, lesson)}
+                      <div style={{ flex: "1 1 280px", minWidth: 0 }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "12px",
+                            marginBottom: "10px"
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: "38px",
+                              height: "38px",
+                              borderRadius: "10px",
+                              background: "#09233d",
+                              color: "#f1bd3e",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontWeight: 900,
+                              fontSize: "15px",
+                              flexShrink: 0
+                            }}
+                          >
+                            {lessonNum}
+                          </div>
+
+                          <strong
+                            style={{
+                              fontSize: "17px",
+                              color: "#09233d",
+                              lineHeight: 1.3
+                            }}
+                          >
+                            {lesson.title}
+                          </strong>
+                        </div>
+
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: "10px",
+                            flexWrap: "wrap",
+                            marginLeft: "50px"
+                          }}
+                        >
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "6px",
+                              padding: "5px 12px",
+                              borderRadius: "8px",
+                              background: "#f0f5ff",
+                              color: "#2b5cb8",
+                              fontSize: "13px",
+                              fontWeight: 700
+                            }}
+                          >
+                            <PlaySquare size={15} />
+                            {videoCount} vidéo{videoCount !== 1 ? "s" : ""}
+                          </span>
+
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "6px",
+                              padding: "5px 12px",
+                              borderRadius: "8px",
+                              background: "#fef6e7",
+                              color: "#b07b00",
+                              fontSize: "13px",
+                              fontWeight: 700
+                            }}
+                          >
+                            <FileText size={15} />
+                            {resourceCount} support{resourceCount !== 1 ? "s" : ""}
+                          </span>
+
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "6px",
+                              padding: "5px 12px",
+                              borderRadius: "8px",
+                              background: isPublished ? "#e8f5ee" : "#f5f5f5",
+                              color: isPublished ? "#287a55" : "#999",
+                              fontSize: "13px",
+                              fontWeight: 700
+                            }}
+                          >
+                            {isPublished ? <CheckCircle2 size={15} /> : <Circle size={15} />}
+                            {isPublished ? "Publié" : "Brouillon"}
+                          </span>
+                        </div>
+                      </div>
+
+                      <button
+                        className="primaryButton"
+                        onClick={() => setEditingLesson(lesson)}
                         style={{
-                          padding: "18px",
-                          borderRadius: "12px",
-                          background: "rgba(255,255,255,.04)"
+                          flexShrink: 0,
+                          whiteSpace: "nowrap"
                         }}
                       >
-                        <h4>🎬 Ajouter une vidéo</h4>
-
-                        <input
-                          placeholder="Titre"
-                          value={videoForm.title}
-                          onChange={e =>
-                            setVideoForm({
-                              ...videoForm,
-                              title: e.target.value
-                            })
-                          }
-                        />
-
-                        <input
-                          placeholder="URL de la vidéo"
-                          value={videoForm.url}
-                          onChange={e =>
-                            setVideoForm({
-                              ...videoForm,
-                              url: e.target.value
-                            })
-                          }
-                        />
-
-                        <input
-                          type="number"
-                          placeholder="Durée en secondes"
-                          value={videoForm.duration}
-                          onChange={e =>
-                            setVideoForm({
-                              ...videoForm,
-                              duration: e.target.value
-                            })
-                          }
-                        />
-
-                        <button
-                          className="primaryButton"
-                          type="submit"
-                          disabled={loading}
-                        >
-                          Ajouter la vidéo
-                        </button>
-                      </form>
-
-                      <form
-                        onSubmit={e => createResource(e, lesson)}
-                        style={{
-                          padding: "18px",
-                          borderRadius: "12px",
-                          background: "rgba(255,255,255,.04)"
-                        }}
-                      >
-                        <h4>📄 Ajouter un support</h4>
-
-                        <select
-                          value={resourceForm.type}
-                          onChange={e =>
-                            setResourceForm({
-                              ...resourceForm,
-                              type: e.target.value
-                            })
-                          }
-                        >
-                          <option value="pdf">PDF</option>
-                          <option value="powerpoint">
-                            PowerPoint
-                          </option>
-                          <option value="document">
-                            Document
-                          </option>
-                          <option value="link">
-                            Lien externe
-                          </option>
-                          <option value="text">
-                            Texte
-                          </option>
-                        </select>
-
-                        <input
-                          placeholder="Titre"
-                          value={resourceForm.title}
-                          onChange={e =>
-                            setResourceForm({
-                              ...resourceForm,
-                              title: e.target.value
-                            })
-                          }
-                        />
-
-                        <input
-                          placeholder="URL du document"
-                          value={resourceForm.url}
-                          onChange={e =>
-                            setResourceForm({
-                              ...resourceForm,
-                              url: e.target.value
-                            })
-                          }
-                        />
-
-                        <textarea
-                          placeholder="Contenu / description (optionnel)"
-                          value={resourceForm.content}
-                          onChange={e =>
-                            setResourceForm({
-                              ...resourceForm,
-                              content: e.target.value
-                            })
-                          }
-                        />
-
-                        <button
-                          className="primaryButton"
-                          type="submit"
-                          disabled={loading}
-                        >
-                          Ajouter le support
-                        </button>
-                      </form>
+                        Gérer le contenu
+                      </button>
                     </div>
-                  )}
-                </div>
-              ))}
+
+                    {contentLessonId === lesson.id && (
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns:
+                            "repeat(auto-fit,minmax(280px,1fr))",
+                          gap: "18px",
+                          marginTop: "22px",
+                          paddingTop: "22px",
+                          borderTop: "1px solid #e5eaf0"
+                        }}
+                      >
+                        <form
+                          onSubmit={e => createVideo(e, lesson)}
+                          style={{
+                            padding: "18px",
+                            borderRadius: "12px",
+                            background: "#f7f9fb",
+                            border: "1px solid #e5eaf0"
+                          }}
+                        >
+                          <h4 style={{ margin: "0 0 14px" }}>Ajouter une vidéo</h4>
+
+                          <input
+                            placeholder="Titre"
+                            value={videoForm.title}
+                            onChange={e =>
+                              setVideoForm({
+                                ...videoForm,
+                                title: e.target.value
+                              })
+                            }
+                          />
+
+                          <input
+                            placeholder="URL de la vidéo"
+                            value={videoForm.url}
+                            onChange={e =>
+                              setVideoForm({
+                                ...videoForm,
+                                url: e.target.value
+                              })
+                            }
+                          />
+
+                          <input
+                            type="number"
+                            placeholder="Durée en secondes"
+                            value={videoForm.duration}
+                            onChange={e =>
+                              setVideoForm({
+                                ...videoForm,
+                                duration: e.target.value
+                              })
+                            }
+                          />
+
+                          <button
+                            className="primaryButton"
+                            type="submit"
+                            disabled={loading}
+                          >
+                            Ajouter la vidéo
+                          </button>
+                        </form>
+
+                        <form
+                          onSubmit={e => createResource(e, lesson)}
+                          style={{
+                            padding: "18px",
+                            borderRadius: "12px",
+                            background: "#f7f9fb",
+                            border: "1px solid #e5eaf0"
+                          }}
+                        >
+                          <h4 style={{ margin: "0 0 14px" }}>Ajouter un support</h4>
+
+                          <select
+                            value={resourceForm.type}
+                            onChange={e =>
+                              setResourceForm({
+                                ...resourceForm,
+                                type: e.target.value
+                              })
+                            }
+                          >
+                            <option value="pdf">PDF</option>
+                            <option value="powerpoint">PowerPoint (PPT/PPTX)</option>
+                            <option value="word">Word (DOC/DOCX)</option>
+                            <option value="excel">Excel (XLS/XLSX)</option>
+                            <option value="image">Image</option>
+                            <option value="document">Autre document</option>
+                            <option value="link">Lien externe</option>
+                            <option value="text">Texte</option>
+                          </select>
+
+                          <input
+                            placeholder="Titre"
+                            value={resourceForm.title}
+                            onChange={e =>
+                              setResourceForm({
+                                ...resourceForm,
+                                title: e.target.value
+                              })
+                            }
+                          />
+
+                          <input
+                            placeholder="URL du document"
+                            value={resourceForm.url}
+                            onChange={e =>
+                              setResourceForm({
+                                ...resourceForm,
+                                url: e.target.value
+                              })
+                            }
+                          />
+
+                          <textarea
+                            placeholder="Contenu / description (optionnel)"
+                            value={resourceForm.content}
+                            onChange={e =>
+                              setResourceForm({
+                                ...resourceForm,
+                                content: e.target.value
+                              })
+                            }
+                          />
+
+                          <button
+                            className="primaryButton"
+                            type="submit"
+                            disabled={loading}
+                          >
+                            Ajouter le support
+                          </button>
+                        </form>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         ))}
@@ -2556,7 +2641,7 @@ function FormationManager({ initialModules = [] }) {
           onClose={() => setEditingLesson(null)}
           onSaved={() => {
             setEditingLesson(null);
-            window.location.reload();
+            refresh();
           }}
         />
       )}
@@ -2588,9 +2673,10 @@ function LessonEditor({ lesson, onClose, onSaved }) {
 
     try {
       const response = await fetch(
-        ("http" + ":" + "/" + "/" + "localhost" + ":" + "3001/api/admin/videos/" + videoId),
+        `/api/admin/videos/${videoId}`,
         {
-          method: "DELETE"
+          method: "DELETE",
+          credentials: "include"
         }
       );
 
@@ -2780,12 +2866,11 @@ function LessonContentManager({ lesson, onSaved }) {
     }
 
     try {
-      const api = "http" + ":" + "/" + "/" + "localhost" + ":" + "3001";
-
       const response = await fetch(
-        api + "/api/admin/videos/" + videoId,
+        `/api/admin/videos/${videoId}`,
         {
-          method: "DELETE"
+          method: "DELETE",
+          credentials: "include"
         }
       );
 
@@ -3315,7 +3400,7 @@ function LessonContentManager({ lesson, onSaved }) {
             gap: "12px"
           }}
         >
-          <strong>📄 Nouveau support</strong>
+          <strong>Nouveau support pédagogique</strong>
 
           <select
             value={resource.type}
@@ -3327,8 +3412,11 @@ function LessonContentManager({ lesson, onSaved }) {
             }
           >
             <option value="pdf">PDF</option>
-            <option value="powerpoint">PowerPoint</option>
-            <option value="document">Document</option>
+            <option value="powerpoint">PowerPoint (PPT/PPTX)</option>
+            <option value="word">Word (DOC/DOCX)</option>
+            <option value="excel">Excel (XLS/XLSX)</option>
+            <option value="image">Image</option>
+            <option value="document">Autre document</option>
             <option value="link">Lien externe</option>
             <option value="text">Texte</option>
           </select>
@@ -3364,7 +3452,7 @@ function LessonContentManager({ lesson, onSaved }) {
 
             <input
               type="file"
-              accept=".pdf,.ppt,.pptx,.doc,.docx,.xls,.xlsx"
+              accept=".pdf,.ppt,.pptx,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.svg,.webp"
               onChange={e => {
                 const file =
                   e.target.files?.[0] || null;

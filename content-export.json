@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "exported_at": "2026-10-06T13:10:36.532Z",
+    "exported_at": "2026-10-06T13:36:33.671Z",
     "tables": [
       "formations",
       "modules",
@@ -9,6 +9,10 @@
       "resources",
       "quizzes",
       "quiz_questions"
+    ],
+    "archived_modules": [
+      "m4",
+      "m5"
     ]
   },
   "formations": [
@@ -23,6 +27,17 @@
     }
   ],
   "modules": [
+    {
+      "id": 2001,
+      "formation_id": 1,
+      "module_key": "welcome",
+      "number": "0",
+      "title": "Bienvenue",
+      "description": "Message de bienvenue et presentation de la formation",
+      "image": "",
+      "position": 0,
+      "published": 1
+    },
     {
       "id": 1,
       "formation_id": 1,
@@ -65,7 +80,7 @@
       "description": "",
       "image": "",
       "position": 5,
-      "published": 1
+      "published": 0
     },
     {
       "id": 1218,
@@ -76,10 +91,19 @@
       "description": "",
       "image": "",
       "position": 4,
-      "published": 1
+      "published": 0
     }
   ],
   "lessons": [
+    {
+      "id": 2002,
+      "module_id": 2001,
+      "lesson_key": "welcome-l1",
+      "title": "Bienvenue dans Football Coach System",
+      "description": "Presentation de la formation et de votre parcours.",
+      "position": 1,
+      "published": 1
+    },
     {
       "id": 1,
       "module_id": 1,
@@ -240,7 +264,7 @@
       "title": "OBJECTIF DE LA PRÉPARATION PHYSIQUE",
       "description": "",
       "position": 1,
-      "published": 1
+      "published": 0
     },
     {
       "id": 1214,
@@ -249,7 +273,7 @@
       "title": "LES DIFFÉRENTES PRÉPARATION PHYSIQUE",
       "description": "",
       "position": 2,
-      "published": 1
+      "published": 0
     },
     {
       "id": 1215,
@@ -258,7 +282,7 @@
       "title": "LES TESTS D'ÉVALUATION",
       "description": "",
       "position": 3,
-      "published": 1
+      "published": 0
     },
     {
       "id": 1216,
@@ -267,7 +291,7 @@
       "title": "PLANNIFICATION D'ENTRAINEMENT ET PROGRAMME PRÉ-SAISON",
       "description": "",
       "position": 4,
-      "published": 1
+      "published": 0
     },
     {
       "id": 1217,
@@ -276,7 +300,7 @@
       "title": "PRÉVENTION DES BLESSURES",
       "description": "",
       "position": 5,
-      "published": 1
+      "published": 0
     },
     {
       "id": 1218,
@@ -285,7 +309,7 @@
       "title": "LES DIFFÉRENTS MOMENTS DU JEU",
       "description": "",
       "position": 1,
-      "published": 1
+      "published": 0
     },
     {
       "id": 1220,
@@ -294,7 +318,7 @@
       "title": "LES SYSTÈMES DE JEU",
       "description": "",
       "position": 2,
-      "published": 1
+      "published": 0
     },
     {
       "id": 1223,
@@ -303,7 +327,7 @@
       "title": "ANALYSER L'ADVERSAIRE",
       "description": "",
       "position": 3,
-      "published": 1
+      "published": 0
     },
     {
       "id": 1224,
@@ -312,7 +336,7 @@
       "title": "ANALYSE VIDÉO",
       "description": "",
       "position": 4,
-      "published": 1
+      "published": 0
     },
     {
       "id": 1225,
@@ -321,7 +345,7 @@
       "title": "PHASES ARRÊTÉES",
       "description": "",
       "position": 5,
-      "published": 1
+      "published": 0
     }
   ],
   "videos": [

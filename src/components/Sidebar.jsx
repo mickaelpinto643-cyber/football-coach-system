@@ -18,7 +18,7 @@ function Sidebar({ onHome, onNavigate, onLogout, activePage }) {
     [Home, "Dashboard", "home"],
     [BookOpen, "Modules & Leçons", "modules"],
     [PlayCircle, "Vidéos", "videos"],
-    [FileText, "Documents", "documents"],
+    [FileText, "Documents & Templates", "documents"],
     [BadgeCheck, "Quiz", "quizzes"],
     [Users, "Apprenants", "learners"],
     [BarChart3, "Progression", "tracking"],

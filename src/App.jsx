@@ -26,6 +26,16 @@ import LearnersAdmin from "./components/LearnersAdmin";
 import ProgressAdmin from "./components/ProgressAdmin";
 
 
+async function safeJson(response) {
+  try {
+    const text = await response.text();
+    if (!text) return null;
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
 function normalizeVideoUrl(value) {
   const raw = String(value || "").trim();
 
@@ -5612,8 +5622,8 @@ function StudentPortalApp() {
     try {
       const res = await fetch("/api/student/progress", { credentials: "include" });
       if (res.ok) {
-        const data = await res.json();
-        if (data.success && data.completed) {
+        const data = await safeJson(res);
+        if (data && data.success && data.completed) {
           setCompleted(data.completed.map(c => c.lesson_id));
         }
       }
@@ -5651,9 +5661,9 @@ function StudentPortalApp() {
         return;
       }
 
-      const me = await meResponse.json();
+      const me = await safeJson(meResponse);
 
-      if (!me.success || !me.authenticated) {
+      if (!me || !me.success || !me.authenticated) {
         setAuthenticated(false);
         setUser(null);
         setFormation(null);
@@ -5671,8 +5681,8 @@ function StudentPortalApp() {
         });
 
         if (formationResponse.ok) {
-          const data = await formationResponse.json();
-          if (data.success && data.formation) {
+          const data = await safeJson(formationResponse);
+          if (data && data.success && data.formation) {
             setFormation(data.formation);
           } else {
             throw new Error("Pas de formation");
@@ -5689,9 +5699,9 @@ function StudentPortalApp() {
           });
 
           if (contentResponse.ok) {
-            const contentData = await contentResponse.json();
+            const contentData = await safeJson(contentResponse);
 
-            if (contentData.formation) {
+            if (contentData && contentData.formation) {
               setFormation(contentData);
             }
           }
@@ -5725,10 +5735,10 @@ function StudentPortalApp() {
         body: JSON.stringify({ email, password })
       });
 
-      const data = await response.json();
+      const data = await safeJson(response);
 
       if (!response.ok || !data || !data.success) {
-        throw new Error(data.error || "Email ou mot de passe incorrect.");
+        throw new Error(data?.error || "Email ou mot de passe incorrect.");
       }
 
       setEmail("");
@@ -6537,8 +6547,8 @@ function AdminApp() {
         setAuthUser(null);
         return;
       }
-      const data = await res.json();
-      if (data.success && data.authenticated) {
+      const data = await safeJson(res);
+      if (data && data.success && data.authenticated) {
         if (data.user.role === "student") {
           window.location.href = "/student";
           return;
@@ -6648,9 +6658,9 @@ function AdminApp() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: loginEmail, password: loginPassword })
       });
-      const data = await response.json();
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || "Email ou mot de passe incorrect.");
+      const data = await safeJson(response);
+      if (!response.ok || !data || !data.success) {
+        throw new Error(data?.error || "Email ou mot de passe incorrect.");
       }
       setLoginEmail("");
       setLoginPassword("");

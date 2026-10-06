@@ -3101,6 +3101,39 @@ const { registerContentRoutes } = require("./contentDb.cjs");
 
 registerContentRoutes(app);
 
+/* Seed a default test student account if it doesn't exist. */
+{
+  const existingStudent = authDb.prepare(
+    "SELECT id FROM users WHERE email = ? LIMIT 1"
+  ).get("test@footballcoachsystem.com");
+
+  if (!existingStudent) {
+    const studentHash = hashPassword("TestFCS2026!");
+
+    const studentResult = authDb.prepare(`
+      INSERT INTO users (email, password_hash, first_name, last_name, role, status)
+      VALUES (?, ?, 'Test', 'FCS', 'student', 'active')
+    `).run("test@footballcoachsystem.com", studentHash);
+
+    const anyFormation = authDb.prepare(
+      "SELECT id FROM formations WHERE published = 1 ORDER BY id LIMIT 1"
+    ).get();
+
+    if (anyFormation) {
+      authDb.prepare(`
+        INSERT OR IGNORE INTO enrollments (user_id, formation_id, status)
+        VALUES (?, ?, 'active')
+      `).run(studentResult.lastInsertRowid, anyFormation.id);
+    }
+
+    console.log("");
+    console.log("=== COMPTE ÉTUDIANT DE TEST ===");
+    console.log("Email    : test@footballcoachsystem.com");
+    console.log("Password : TestFCS2026!");
+    console.log("================================");
+  }
+}
+
 /* =========================================================
    STUDENT — PROGRESSION INDIVIDUELLE
    ========================================================= */

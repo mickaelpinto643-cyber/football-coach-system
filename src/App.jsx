@@ -17,6 +17,11 @@ import {
 } from "./data/lessonContent";
 import { courseVideos } from "./data/courseVideos";
 import contentExport from "../content-export.json";
+import DocumentsTemplates from "./components/DocumentsTemplates";
+import StudentFormation from "./components/StudentFormation";
+import QuizAdmin from "./components/QuizAdmin";
+import { LivesReplaysAdmin, LivesReplaysStudent } from "./components/LivesReplays";
+import { GameModelStudent, GAME_MODEL_SECTIONS } from "./components/GameModel";
 
 
 function normalizeVideoUrl(value) {
@@ -111,89 +116,12 @@ function getFallbackModules() {
   }
 }
 
-const courseModules = [
-  {
-    id: 1,
-    number: "MODULE 1",
-    title: "Construire son modèle de jeu",
-    description: "Construis une identité de jeu claire, cohérente et applicable sur le terrain.",
-    image: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1200&q=85",
-    lessons: [
-      {
-        id: "m1-l1",
-        title: "Identité de jeu",
-        duration: "12 min",
-        description: "Comprendre ce qui définit réellement l'identité d'une équipe.",
-        video: "https://www.youtube.com/embed/dQw4w9WgXcQ"
-      },
-      {
-        id: "m1-l2",
-        title: "Principes et sous-principes",
-        duration: "18 min",
-        description: "Transformer tes idées en principes de jeu observables.",
-        video: "https://www.youtube.com/embed/dQw4w9WgXcQ"
-      },
-      {
-        id: "m1-l3",
-        title: "Organisation tactique",
-        duration: "16 min",
-        description: "Donner une structure cohérente à ton modèle de jeu.",
-        video: "https://www.youtube.com/embed/dQw4w9WgXcQ"
-      },
-      {
-        id: "m1-l4",
-        title: "Mise en place sur le terrain",
-        duration: "21 min",
-        description: "Passer du modèle théorique aux comportements sur le terrain.",
-        video: "https://www.youtube.com/embed/dQw4w9WgXcQ"
-      }
-    ]
-  },
-  {
-    id: 2,
-    number: "MODULE 2",
-    title: "Principes de jeu et comportements",
-    image: "https://images.unsplash.com/photo-1517466787929-bc90951d0974?auto=format&fit=crop&w=900&q=80",
-    lessons: [
-      { id:"m2-l1", title:"Phase offensive" },
-      { id:"m2-l2", title:"Phase défensive" },
-      { id:"m2-l3", title:"Transitions" },
-      { id:"m2-l4", title:"Jeux de position et relations" }
-    ]
-  },
-  {
-    id: 3,
-    number: "MODULE 3",
-    title: "Méthodologie d'entraînement",
-    image: "https://images.unsplash.com/photo-1553778263-73a83bab9b0c?auto=format&fit=crop&w=900&q=80",
-    lessons: [
-      { id:"m3-l1", title:"Le microcycle" },
-      { id:"m3-l2", title:"Planification des séances" },
-      { id:"m3-l3", title:"Types de tâches et exercices" },
-      { id:"m3-l4", title:"Gestion de la charge (RPE)" }
-    ]
-  },
-  {
-    id: 4,
-    number: "MODULE 4",
-    title: "Performance et suivi du joueur",
-    image: "https://images.unsplash.com/photo-1535131749006-b7f58c99034b?auto=format&fit=crop&w=900&q=80",
-    lessons: [
-      { id:"m4-l1", title:"Tests physiques" },
-      { id:"m4-l2", title:"Suivi de la charge" },
-      { id:"m4-l3", title:"Prévention des blessures" },
-      { id:"m4-l4", title:"Analyse et indicateurs" }
-    ]
-  }
-];
 
 const initialCompleted = [
+  "welcome-l1",
   "m1-l1",
   "m1-l2",
-  "m1-l3",
-  "m2-l1",
-  "m2-l2",
-  "m3-l1"
+  "m2-l1"
 ];
 
 const menu = [
@@ -5623,8 +5551,6 @@ function LivesSection() {
    ========================================================= */
 
 function StudentPortalApp() {
-  const [openModuleId, setOpenModuleId] = useState(null);
-
   const [loading, setLoading] = useState(true);
   const [authenticated, setAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
@@ -5633,21 +5559,32 @@ function StudentPortalApp() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
+  const [studentPage, setStudentPage] = useState("dashboard");
+  const [completed, setCompleted] = useState(() => {
+    try {
+      const key = `fcs-completed-${user?.id || "anon"}`;
+      return JSON.parse(localStorage.getItem("fcs-student-completed") || "[]");
+    } catch { return []; }
+  });
 
-  const [activeModuleId, setActiveModuleId] = useState(null);
-  const [activeLessonId, setActiveLessonId] = useState(null);
+  useEffect(() => {
+    localStorage.setItem("fcs-student-completed", JSON.stringify(completed));
+  }, [completed]);
+
+  function toggleCompleted(id) {
+    setCompleted(prev =>
+      prev.includes(id)
+        ? prev.filter(item => item !== id)
+        : [...prev, id]
+    );
+  }
 
   async function loadStudent() {
     setLoading(true);
     setError("");
 
     try {
-      const meResponse = await fetch(
-        "/api/auth/me",
-        {
-          credentials: "include"
-        }
-      );
+      const meResponse = await fetch("/api/auth/me", { credentials: "include" });
 
       if (!meResponse.ok) {
         setAuthenticated(false);
@@ -5665,54 +5602,27 @@ function StudentPortalApp() {
         return;
       }
 
-      const formationResponse = await fetch(
-        "/api/student/formation",
-        {
-          credentials: "include"
-        }
-      );
-
-      const data = await formationResponse.json();
-
-      if (!formationResponse.ok || !data.success) {
-        throw new Error(
-          data.error ||
-          "Impossible de charger ta formation."
-        );
-      }
-
       setAuthenticated(true);
       setUser(me.user);
-      console.log("FCS FORMATION API:", JSON.stringify(data.formation, null, 2));
-      console.log("FCS MODULES API:", JSON.stringify(data.formation?.modules || [], null, 2));
 
-      setFormation(data.formation);
+      try {
+        const formationResponse = await fetch("/api/student/formation", {
+          credentials: "include"
+        });
 
-      const firstModule =
-        data.formation?.modules?.[0];
-
-      const firstLesson =
-        firstModule?.lessons?.[0];
-
-      if (firstModule) {
-        setActiveModuleId(firstModule.id);
-      }
-
-      if (firstLesson) {
-        setActiveLessonId(firstLesson.id);
+        if (formationResponse.ok) {
+          const data = await formationResponse.json();
+          if (data.success && data.formation) {
+            setFormation(data.formation);
+          }
+        }
+      } catch (err) {
+        console.warn("Formation load failed:", err);
       }
 
     } catch (err) {
-      console.error(
-        "FCS STUDENT PORTAL:",
-        err
-      );
-
-      setError(
-        err.message ||
-        "Impossible de charger ton espace."
-      );
-
+      console.error("FCS STUDENT PORTAL:", err);
+      setError(err.message || "Impossible de charger ton espace.");
     } finally {
       setLoading(false);
     }
@@ -5722,107 +5632,31 @@ function StudentPortalApp() {
     loadStudent();
   }, []);
 
-  // -------------------------------------------------------
-  // Rafraîchissement automatique du contenu apprenant
-  // -------------------------------------------------------
-  useEffect(() => {
-    if (!authenticated) return;
-
-    const refreshFormation = async () => {
-      try {
-        const response = await fetch(
-          "/api/student/formation",
-          {
-            credentials: "include",
-            cache: "no-store"
-          }
-        );
-
-        if (!response.ok) return;
-
-        const data = await response.json();
-
-        if (data.success && data.formation) {
-          setFormation(data.formation);
-        }
-      } catch (err) {
-        console.error(
-          "FCS AUTO REFRESH:",
-          err
-        );
-      }
-    };
-
-    // Vérification toutes les 5 secondes
-    const interval = setInterval(
-      refreshFormation,
-      5000
-    );
-
-    // Rafraîchissement immédiat lorsque
-    // l'utilisateur revient sur l'onglet
-    const handleVisibility = () => {
-      if (document.visibilityState === "visible") {
-        refreshFormation();
-      }
-    };
-
-    document.addEventListener(
-      "visibilitychange",
-      handleVisibility
-    );
-
-    return () => {
-      clearInterval(interval);
-      document.removeEventListener(
-        "visibilitychange",
-        handleVisibility
-      );
-    };
-  }, [authenticated]);
-
   async function login(event) {
     event.preventDefault();
-
     setLoginLoading(true);
     setError("");
 
     try {
-      const response = await fetch(
-        "/api/auth/login",
-        {
-          method: "POST",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            email,
-            password
-          })
-        }
-      );
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password })
+      });
 
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        throw new Error(
-          data.error ||
-          "Email ou mot de passe incorrect."
-        );
+        throw new Error(data.error || "Email ou mot de passe incorrect.");
       }
 
       setEmail("");
       setPassword("");
-
       await loadStudent();
 
     } catch (err) {
-      setError(
-        err.message ||
-        "Impossible de se connecter."
-      );
-
+      setError(err.message || "Impossible de se connecter.");
     } finally {
       setLoginLoading(false);
     }
@@ -5830,22 +5664,11 @@ function StudentPortalApp() {
 
   async function logout() {
     try {
-      await fetch(
-        "/api/auth/logout",
-        {
-          method: "POST",
-          credentials: "include"
-        }
-      );
-    } catch (err) {
-      console.error(err);
-    }
-
+      await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+    } catch (err) { console.error(err); }
     setAuthenticated(false);
     setUser(null);
     setFormation(null);
-    setActiveModuleId(null);
-    setActiveLessonId(null);
   }
 
   if (loading) {
@@ -5858,813 +5681,487 @@ function StudentPortalApp() {
         background: "#f5f7fa",
         fontFamily: "Inter, system-ui, sans-serif"
       }}>
-        <div style={{
-          textAlign: "center"
-        }}>
+        <div style={{ textAlign: "center" }}>
           <div style={{
-            width: "46px",
-            height: "46px",
-            borderRadius: "50%",
-            border: "4px solid #dfe6ed",
-            borderTopColor: "#f1bd3e",
-            margin: "0 auto 18px"
+            width: "46px", height: "46px", borderRadius: "50%",
+            border: "4px solid #dfe6ed", borderTopColor: "#f1bd3e",
+            margin: "0 auto 18px",
+            animation: "spin 1s linear infinite"
           }} />
-
-          <strong style={{
-            color: "#09233d"
-          }}>
-            Chargement de ton espace...
-          </strong>
+          <strong style={{ color: "#09233d" }}>Chargement de ton espace...</strong>
         </div>
       </div>
     );
   }
 
-
-  /* =======================================================
-     LOGIN
-     ======================================================= */
-
   if (!authenticated) {
     return (
       <div style={{
         minHeight: "100vh",
-        background:
-          "linear-gradient(135deg, #071c31 0%, #123c61 100%)",
+        background: "linear-gradient(135deg, #071c31 0%, #123c61 100%)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         padding: "24px",
         fontFamily: "Inter, system-ui, sans-serif"
       }}>
-
         <div style={{
-          width: "100%",
-          maxWidth: "460px",
-          background: "#fff",
-          borderRadius: "24px",
+          width: "100%", maxWidth: "460px",
+          background: "#fff", borderRadius: "24px",
           padding: "42px",
-          boxShadow:
-            "0 30px 80px rgba(0,0,0,.25)"
+          boxShadow: "0 30px 80px rgba(0,0,0,.25)"
         }}>
-
-          <div style={{
-            textAlign: "center",
-            marginBottom: "34px"
-          }}>
-
+          <div style={{ textAlign: "center", marginBottom: "34px" }}>
             <div style={{
-              width: "58px",
-              height: "58px",
-              borderRadius: "16px",
-              background: "#09233d",
-              color: "#f1bd3e",
-              display: "flex",
-              alignItems: "center",
+              width: "58px", height: "58px", borderRadius: "16px",
+              background: "#09233d", color: "#f1bd3e",
+              display: "flex", alignItems: "center",
               justifyContent: "center",
-              margin: "0 auto 18px",
-              fontWeight: 900,
-              fontSize: "17px"
+              fontSize: "22px", fontWeight: 900,
+              margin: "0 auto 16px"
             }}>
               FCS
             </div>
-
-            <div style={{
-              fontSize: "12px",
-              fontWeight: 800,
-              letterSpacing: "2px",
-              color: "#f1bd3e",
-              marginBottom: "8px"
-            }}>
-              FOOTBALL COACH SYSTEM
-            </div>
-
-            <h1 style={{
-              margin: 0,
-              color: "#09233d",
-              fontSize: "30px"
-            }}>
-              Ton espace apprenant
+            <h1 style={{ margin: "0 0 8px", color: "#09233d", fontSize: "24px" }}>
+              Football Coach System
             </h1>
-
-            <p style={{
-              color: "#6b7b8c",
-              lineHeight: 1.6,
-              marginTop: "12px"
-            }}>
-              Connecte-toi pour accéder à ta formation.
+            <p style={{ margin: 0, color: "#718096", fontSize: "14px" }}>
+              Connecte-toi pour accéder à ta formation
             </p>
-
           </div>
 
-
-          <form onSubmit={login}>
-
-            <label style={{
-              display: "block",
-              fontWeight: 700,
-              fontSize: "14px",
-              color: "#09233d",
-              marginBottom: "8px"
+          {error && (
+            <div style={{
+              padding: "12px 16px", borderRadius: "10px",
+              background: "#fef2f2", color: "#c0392b",
+              fontSize: "14px", marginBottom: "18px"
             }}>
-              Adresse e-mail
-            </label>
+              {error}
+            </div>
+          )}
 
+          <form onSubmit={login} style={{ display: "grid", gap: "16px" }}>
             <input
               type="email"
+              placeholder="Email"
               value={email}
               onChange={e => setEmail(e.target.value)}
-              placeholder="ton@email.com"
-              autoComplete="email"
               required
               style={{
-                width: "100%",
-                boxSizing: "border-box",
-                padding: "14px 15px",
-                borderRadius: "12px",
-                border: "1px solid #dce3ea",
-                fontSize: "15px",
-                marginBottom: "18px",
-                outline: "none"
+                width: "100%", padding: "14px 16px",
+                border: "1px solid #dfe5eb", borderRadius: "12px",
+                fontSize: "15px", outline: "none",
+                boxSizing: "border-box"
               }}
             />
-
-            <label style={{
-              display: "block",
-              fontWeight: 700,
-              fontSize: "14px",
-              color: "#09233d",
-              marginBottom: "8px"
-            }}>
-              Mot de passe
-            </label>
-
             <input
               type="password"
+              placeholder="Mot de passe"
               value={password}
               onChange={e => setPassword(e.target.value)}
-              placeholder="••••••••"
-              autoComplete="current-password"
               required
               style={{
-                width: "100%",
-                boxSizing: "border-box",
-                padding: "14px 15px",
-                borderRadius: "12px",
-                border: "1px solid #dce3ea",
-                fontSize: "15px",
-                marginBottom: "20px",
-                outline: "none"
+                width: "100%", padding: "14px 16px",
+                border: "1px solid #dfe5eb", borderRadius: "12px",
+                fontSize: "15px", outline: "none",
+                boxSizing: "border-box"
               }}
             />
-
-            {error && (
-              <div style={{
-                background: "#fff1f1",
-                border: "1px solid #ffd4d4",
-                color: "#b42318",
-                padding: "12px 14px",
-                borderRadius: "10px",
-                marginBottom: "18px",
-                fontSize: "14px"
-              }}>
-                {error}
-              </div>
-            )}
-
             <button
               type="submit"
               disabled={loginLoading}
               style={{
-                width: "100%",
-                border: 0,
-                borderRadius: "12px",
-                padding: "15px",
-                background: "#f1bd3e",
-                color: "#09233d",
-                fontWeight: 900,
-                fontSize: "15px",
-                cursor: loginLoading
-                  ? "wait"
-                  : "pointer"
+                border: 0, borderRadius: "12px", padding: "14px",
+                background: "#f1bd3e", color: "#09233d",
+                fontWeight: 800, fontSize: "15px",
+                cursor: "pointer"
               }}
             >
-              {loginLoading
-                ? "Connexion..."
-                : "Se connecter"}
+              {loginLoading ? "Connexion..." : "Se connecter"}
             </button>
-
           </form>
-
         </div>
       </div>
     );
   }
 
+  // Use fallback modules if API didn't return formation data
+  const studentModules = formation?.modules?.length
+    ? normalizeApiModules({
+        formation: formation,
+        modules: formation.modules.map(m => ({
+          ...m,
+          lessons: (m.lessons || []).map(l => ({
+            ...l,
+            videos: l.videos || [],
+            resources: []
+          }))
+        }))
+      })
+    : getFallbackModules();
 
-  /* =======================================================
-     FORMATION
-     ======================================================= */
+  const allLessons = studentModules.flatMap(m => m.lessons || []);
+  const totalLessons = allLessons.length;
+  const completedCount = allLessons.filter(l => completed.includes(l.id)).length;
+  const progress = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
+  const totalVideos = studentModules.reduce((t, m) =>
+    t + (m.lessons || []).reduce((s, l) => s + (l.videos?.length || 0), 0), 0);
 
-  const allModules =
-    Array.isArray(formation?.modules)
-      ? formation.modules
-      : [];
+  // Find next lesson
+  let nextLesson = null, nextModule = null;
+  for (const module of studentModules) {
+    const pending = (module.lessons || []).find(l => !completed.includes(l.id));
+    if (pending) { nextLesson = pending; nextModule = module; break; }
+  }
 
-  // ESPACE APPRENANT : seuls les 3 premiers modules sont accessibles
-  const modules = allModules.slice(0, 3);
+  const studentMenu = [
+    { key: "dashboard", label: "Accueil", icon: Home },
+    { key: "formation", label: "Ma formation", icon: BookOpen },
+    { key: "documents", label: "Documents & Templates", icon: FileText },
+    { key: "model-game", label: "Mon Modèle de jeu", icon: Brain },
+    { key: "lives", label: "Lives & Replays", icon: CalendarDays },
+    { key: "progress", label: "Ma progression", icon: BarChart3 }
+  ];
 
-  const activeModule =
-    modules.find(
-      module => module.id === activeModuleId
-    ) || modules[0];
-
-  const lessons =
-    Array.isArray(activeModule?.lessons)
-      ? activeModule.lessons
-      : [];
-
-  const activeLesson =
-    lessons.find(
-      lesson => lesson.id === activeLessonId
-    ) || lessons[0];
-
-  const videos =
-    Array.isArray(activeLesson?.videos)
-      ? activeLesson.videos
-      : [];
-
-  const activeVideo =
-    videos[0] || null;
-
-  const totalLessons = modules.reduce(
-    (total, module) =>
-      total +
-      (module.lessons?.length || 0),
-    0
-  );
-
-  const totalVideos = modules.reduce(
-    (total, module) =>
-      total +
-      (module.lessons || []).reduce(
-        (sum, lesson) =>
-          sum + (lesson.videos?.length || 0),
-        0
-      ),
-    0
-  );
-
-
-  return (
-    <div style={{
-      minHeight: "100vh",
-      background: "#f4f7fa",
-      fontFamily: "Inter, system-ui, sans-serif",
-      color: "#09233d"
-    }}>
-
-      {/* TOPBAR */}
-
-      <header style={{
-        height: "76px",
-        background: "#09233d",
-        color: "#fff",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "0 32px",
-        boxSizing: "border-box"
-      }}>
-
-        <div style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "14px"
-        }}>
-
-          <div style={{
-            width: "42px",
-            height: "42px",
-            borderRadius: "12px",
-            background: "#f1bd3e",
-            color: "#09233d",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontWeight: 900
-          }}>
-            FCS
-          </div>
-
+  function StudentSidebar() {
+    return (
+      <aside className="sidebar">
+        <div className="brand">
+          <div className="brandMark">FCS</div>
           <div>
-            <strong>
-              FOOTBALL COACH SYSTEM
-            </strong>
-
-            <div style={{
-              fontSize: "10px",
-              opacity: .65,
-              letterSpacing: "1.5px"
-            }}>
-              ESPACE APPRENANT
-            </div>
+            <strong>FOOTBALL COACH</strong>
+            <div className="tagline">ESPACE APPRENANT</div>
           </div>
-
         </div>
+        <nav>
+          {studentMenu.map(item => {
+            const Icon = item.icon;
+            const active = studentPage === item.key;
+            return (
+              <button
+                key={item.key}
+                className={`navItem ${active ? "active" : ""}`}
+                onClick={() => { setStudentPage(item.key); window.scrollTo(0, 0); }}
+              >
+                <Icon size={21} />
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+        <button
+          type="button"
+          onClick={logout}
+          style={{
+            width: "calc(100% - 28px)",
+            margin: "10px 14px 18px",
+            padding: "12px 14px",
+            borderRadius: "10px",
+            border: "1px solid rgba(255,255,255,.18)",
+            background: "rgba(255,255,255,.06)",
+            color: "#fff",
+            fontWeight: 700,
+            fontSize: "14px",
+            cursor: "pointer",
+            textAlign: "left"
+          }}
+        >
+          Déconnexion
+        </button>
+      </aside>
+    );
+  }
 
-
-        <div style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "18px"
-        }}>
-
-          <span style={{
-            fontSize: "14px"
-          }}>
-            Bonjour{" "}
-            <strong>
-              {user?.first_name || "Coach"}
-            </strong>
-          </span>
-
-          <button
-            onClick={logout}
-            style={{
-              border: "1px solid rgba(255,255,255,.2)",
-              background: "transparent",
-              color: "#fff",
-              borderRadius: "10px",
-              padding: "9px 13px",
-              cursor: "pointer"
-            }}
-          >
-            Déconnexion
-          </button>
-
+  function StudentDashboard() {
+    return (
+      <div style={{ maxWidth: "1180px", margin: "0 auto", padding: "34px 28px 60px" }}>
+        <div style={{ marginBottom: "28px" }}>
+          <div style={{ fontSize: "14px", fontWeight: 700, color: "#718096", marginBottom: "8px" }}>
+            FOOTBALL COACH SYSTEM
+          </div>
+          <h1 style={{ margin: 0, fontSize: "34px", color: "#09233d", letterSpacing: "-0.8px" }}>
+            Bonjour {user?.first_name || "Coach"}
+          </h1>
+          <p style={{ margin: "10px 0 0", color: "#68798a", fontSize: "16px" }}>
+            Continue ton parcours et développe ta méthode d'entraîneur.
+          </p>
         </div>
-
-      </header>
-
-
-      {/* CONTENT */}
-
-      <main style={{
-        maxWidth: "1440px",
-        margin: "0 auto",
-        padding: "34px"
-      }}>
-
-        {/* HERO */}
 
         <section style={{
-          background:
-            "linear-gradient(135deg, #09233d 0%, #174c76 100%)",
-          color: "#fff",
-          borderRadius: "22px",
-          padding: "34px",
-          marginBottom: "24px"
+          display: "grid",
+          gridTemplateColumns: "minmax(0, 1.6fr) minmax(260px, .8fr)",
+          gap: "20px", marginBottom: "24px"
         }}>
-
-          <div style={{
-            fontSize: "12px",
-            color: "#f1bd3e",
-            fontWeight: 900,
-            letterSpacing: "1.5px",
-            marginBottom: "8px"
+          <article style={{
+            background: "linear-gradient(135deg, #09233d 0%, #123c61 100%)",
+            color: "#fff", borderRadius: "22px", padding: "30px",
+            minHeight: "250px", boxShadow: "0 14px 35px rgba(9,35,61,.14)"
           }}>
-            MA FORMATION
-          </div>
-
-          <h1 style={{
-            margin: "0 0 10px",
-            fontSize: "32px"
-          }}>
-            {formation?.title || "Football Coach System"}
-          </h1>
-
-          <p style={{
-            margin: 0,
-            opacity: .8
-          }}>
-            Développe ta méthode d'entraîneur,
-            structure ton modèle et transforme
-            tes idées en actions terrain.
-          </p>
-
-          <div style={{
-            display: "flex",
-            gap: "12px",
-            marginTop: "24px",
-            flexWrap: "wrap"
-          }}>
-
             <div style={{
-              background: "rgba(255,255,255,.1)",
-              borderRadius: "12px",
-              padding: "12px 16px"
+              fontSize: "12px", fontWeight: 800, letterSpacing: "1.2px",
+              textTransform: "uppercase", opacity: .65
             }}>
-              <strong>{modules.length}</strong>{" "}
-              modules
+              Continuer ma formation
             </div>
-
+            <h2 style={{ margin: "12px 0 6px", fontSize: "25px" }}>
+              {nextModule?.title || "Commencer la formation"}
+            </h2>
+            <p style={{ margin: "0 0 24px", opacity: .78, fontSize: "15px" }}>
+              {nextLesson ? nextLesson.title : "Tous les contenus disponibles sont terminés."}
+            </p>
             <div style={{
-              background: "rgba(255,255,255,.1)",
-              borderRadius: "12px",
-              padding: "12px 16px"
+              height: "7px", background: "rgba(255,255,255,.18)",
+              borderRadius: "99px", overflow: "hidden", marginBottom: "9px"
             }}>
-              <strong>{totalLessons}</strong>{" "}
-              leçons
+              <div style={{
+                width: `${progress}%`, height: "100%",
+                background: "#f1bd3e", borderRadius: "99px"
+              }} />
             </div>
-
             <div style={{
-              background: "rgba(255,255,255,.1)",
-              borderRadius: "12px",
-              padding: "12px 16px"
+              display: "flex", justifyContent: "space-between",
+              fontSize: "13px", opacity: .72, marginBottom: "22px"
             }}>
-              <strong>{totalVideos}</strong>{" "}
-              vidéos
+              <span>{progress}% terminé</span>
+              <span>{completedCount}/{totalLessons} leçons</span>
             </div>
+            <button
+              onClick={() => setStudentPage("formation")}
+              disabled={!nextModule}
+              style={{
+                border: 0, borderRadius: "11px", padding: "13px 20px",
+                background: "#f1bd3e", color: "#09233d",
+                fontWeight: 800, fontSize: "14px",
+                cursor: nextModule ? "pointer" : "default",
+                opacity: nextModule ? 1 : .5
+              }}
+            >
+              {nextLesson ? "Continuer mon parcours" : "Formation terminée"}
+            </button>
+          </article>
 
-          </div>
-
+          <article style={{
+            background: "#fff", border: "1px solid #e7edf2",
+            borderRadius: "22px", padding: "28px",
+            boxShadow: "0 8px 24px rgba(9,35,61,.04)"
+          }}>
+            <div style={{
+              fontSize: "13px", fontWeight: 800, color: "#718096",
+              textTransform: "uppercase", letterSpacing: ".8px"
+            }}>
+              Ma progression
+            </div>
+            <div style={{
+              display: "flex", alignItems: "center", gap: "22px", marginTop: "24px"
+            }}>
+              <div style={{
+                width: "104px", height: "104px", borderRadius: "50%",
+                background: `conic-gradient(#f1bd3e ${progress * 3.6}deg, #edf1f4 0deg)`,
+                display: "grid", placeItems: "center", flexShrink: 0
+              }}>
+                <div style={{
+                  width: "78px", height: "78px", borderRadius: "50%",
+                  background: "#fff", display: "grid", placeItems: "center",
+                  color: "#09233d", fontWeight: 900, fontSize: "21px"
+                }}>
+                  {progress}%
+                </div>
+              </div>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: "17px", color: "#09233d" }}>
+                  Ton parcours
+                </div>
+                <div style={{ marginTop: "7px", color: "#718096", fontSize: "14px", lineHeight: 1.5 }}>
+                  {completedCount} leçon{completedCount !== 1 ? "s" : ""} terminée{completedCount !== 1 ? "s" : ""}
+                  {" "}sur {totalLessons}.
+                </div>
+              </div>
+            </div>
+          </article>
         </section>
 
-
-        <div style={{
-          display: "grid",
-          gridTemplateColumns:
-            "minmax(280px, 340px) minmax(0, 1fr)",
-          gap: "24px",
-          alignItems: "start"
+        <section style={{
+          display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+          gap: "16px", marginBottom: "30px"
         }}>
-
-          {/* MODULES */}
-
-          <aside style={{
-            background: "#fff",
-            borderRadius: "18px",
-            border: "1px solid #e2e8ee",
-            overflow: "hidden"
-          }}>
-
-            <div style={{
-              padding: "20px",
-              borderBottom: "1px solid #edf0f3"
+          {[
+            ["Modules", studentModules.length],
+            ["Leçons", totalLessons],
+            ["Vidéos", totalVideos]
+          ].map(([label, value]) => (
+            <div key={label} style={{
+              background: "#fff", border: "1px solid #e7edf2",
+              borderRadius: "17px", padding: "20px 22px"
             }}>
-              <strong>
-                Contenu de la formation
-              </strong>
-
-              <div style={{
-                fontSize: "13px",
-                color: "#718096",
-                marginTop: "5px"
-              }}>
-                {modules.length} modules disponibles
+              <div style={{ color: "#718096", fontSize: "13px", fontWeight: 700 }}>{label}</div>
+              <div style={{ marginTop: "7px", color: "#09233d", fontSize: "27px", fontWeight: 900 }}>
+                {value}
               </div>
             </div>
+          ))}
+        </section>
 
+        <section>
+          <h2 style={{ margin: "0 0 16px", color: "#09233d", fontSize: "22px" }}>
+            Mes modules
+          </h2>
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+            gap: "18px"
+          }}>
+            {studentModules.map((module, index) => {
+              const lessons = module.lessons || [];
+              const done = lessons.filter(l => completed.includes(l.id)).length;
+              const modProgress = lessons.length > 0 ? Math.round((done / lessons.length) * 100) : 0;
+              const status = modProgress === 0 ? "À commencer" : modProgress === 100 ? "Terminé" : "En cours";
+              const statusColor = modProgress === 0 ? "#9aa5b5" : modProgress === 100 ? "#287a55" : "#b07b00";
 
-            <div style={{
-              padding: "10px"
-            }}>
-
-              {modules.map((module, index) => {
-                const active =
-                  module.id === activeModule?.id;
-
-                const isOpen =
-                  openModuleId === module.id;
-
-                return (
-                  <div
-                    key={module.id}
+              return (
+                <article key={module.id} style={{
+                  background: "#fff", border: "1px solid #e7edf2",
+                  borderRadius: "19px", padding: "22px"
+                }}>
+                  <div style={{
+                    display: "flex", justifyContent: "space-between", alignItems: "center"
+                  }}>
+                    <span style={{ fontSize: "12px", fontWeight: 900, color: "#718096" }}>
+                      {module.isWelcome ? "BIENVENUE" : module.number}
+                    </span>
+                    <span style={{ fontSize: "12px", fontWeight: 800, color: statusColor }}>
+                      {status}
+                    </span>
+                  </div>
+                  <h3 style={{ color: "#09233d", margin: "16px 0 7px", fontSize: "18px", lineHeight: 1.3 }}>
+                    {module.title}
+                  </h3>
+                  <p style={{ color: "#718096", fontSize: "13px", margin: "0 0 16px" }}>
+                    {lessons.length} leçon{lessons.length !== 1 ? "s" : ""}
+                  </p>
+                  <div style={{
+                    height: "6px", background: "#edf1f4",
+                    borderRadius: "99px", overflow: "hidden", marginBottom: "17px"
+                  }}>
+                    <div style={{
+                      width: `${modProgress}%`, height: "100%",
+                      background: "#f1bd3e", borderRadius: "99px"
+                    }} />
+                  </div>
+                  <button
+                    onClick={() => setStudentPage("formation")}
                     style={{
-                      marginBottom: "8px"
+                      width: "100%", border: 0, borderRadius: "11px",
+                      padding: "12px 16px", background: "#f1bd3e",
+                      color: "#09233d", fontWeight: 800, cursor: "pointer"
                     }}
                   >
+                    {modProgress > 0 ? "Continuer" : "Commencer"}
+                  </button>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      </div>
+    );
+  }
 
-                    {/* MODULE */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const firstLesson =
-                          module.lessons?.[0];
+  function StudentProgress() {
+    const moduleStats = studentModules.map(module => {
+      const lessons = module.lessons || [];
+      const done = lessons.filter(l => completed.includes(l.id)).length;
+      return {
+        id: module.id,
+        title: module.title,
+        number: module.number,
+        done,
+        total: lessons.length,
+        pct: lessons.length > 0 ? Math.round((done / lessons.length) * 100) : 0
+      };
+    });
 
-                        setActiveModuleId(module.id);
-
-                        if (isOpen) {
-                          setOpenModuleId(null);
-                        } else {
-                          setOpenModuleId(module.id);
-
-                          if (firstLesson) {
-                            setActiveLessonId(firstLesson.id);
-                          }
-                        }
-                      }}
-                      style={{
-                        width: "100%",
-                        textAlign: "left",
-                        border: active
-                          ? "1px solid #f1bd3e"
-                          : "1px solid #e2e8ee",
-                        borderRadius: "12px",
-                        padding: "15px",
-                        cursor: "pointer",
-                        background: active
-                          ? "#fff7df"
-                          : "#fff",
-                        color: "#09233d"
-                      }}
-                    >
-
-                      <div style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        gap: "10px"
-                      }}>
-
-                        <div style={{
-                          minWidth: 0
-                        }}>
-
-                          <div style={{
-                            fontSize: "11px",
-                            fontWeight: 900,
-                            color: "#b18417",
-                            marginBottom: "4px"
-                          }}>
-                            MODULE{" "}
-                            {String(
-                              module.number || index + 1
-                            ).replace("MODULE ", "").padStart(2, "0")}
-                          </div>
-
-                          <strong style={{
-                            fontSize: "14px",
-                            lineHeight: 1.35,
-                            display: "block"
-                          }}>
-                            {module.title}
-                          </strong>
-
-                          <div style={{
-                            fontSize: "12px",
-                            color: "#718096",
-                            marginTop: "5px"
-                          }}>
-                            {module.lessons?.length || 0} leçons
-                          </div>
-
-                        </div>
-
-                        <span style={{
-                          flex: "0 0 auto",
-                          fontSize: "18px",
-                          fontWeight: 700,
-                          color: "#718096"
-                        }}>
-                          {isOpen ? "⌃" : "⌄"}
-                        </span>
-
-                      </div>
-
-                    </button>
-
-
-                    {/* LEÇONS DU MODULE */}
-                    {isOpen && (
-                      <div style={{
-                        marginTop: "6px",
-                        marginLeft: "10px",
-                        paddingLeft: "10px",
-                        borderLeft: "2px solid #edf0f3"
-                      }}>
-
-                        {(module.lessons || []).map(
-                          (lesson, lessonIndex) => {
-
-                            const lessonActive =
-                              activeLesson?.id === lesson.id &&
-                              activeModule?.id === module.id;
-
-                            return (
-                              <button
-                                type="button"
-                                key={lesson.id}
-                                onClick={() => {
-                                  setActiveModuleId(module.id);
-                                  setActiveLessonId(lesson.id);
-                                  setOpenModuleId(module.id);
-                                }}
-                                style={{
-                                  width: "100%",
-                                  textAlign: "left",
-                                  border: 0,
-                                  borderRadius: "10px",
-                                  padding: "11px 12px",
-                                  marginBottom: "4px",
-                                  cursor: "pointer",
-                                  background: lessonActive
-                                    ? "#fff8e4"
-                                    : "transparent",
-                                  color: "#09233d",
-                                  borderLeft: lessonActive
-                                    ? "3px solid #f1bd3e"
-                                    : "3px solid transparent"
-                                }}
-                              >
-
-                                <div style={{
-                                  display: "flex",
-                                  gap: "9px",
-                                  alignItems: "flex-start"
-                                }}>
-
-                                  <span style={{
-                                    fontSize: "10px",
-                                    fontWeight: 900,
-                                    color: "#b18417",
-                                    minWidth: "20px",
-                                    paddingTop: "2px"
-                                  }}>
-                                    {String(
-                                      lessonIndex + 1
-                                    ).padStart(2, "0")}
-                                  </span>
-
-                                  <span style={{
-                                    fontSize: "12px",
-                                    fontWeight: lessonActive
-                                      ? 800
-                                      : 600,
-                                    lineHeight: 1.4
-                                  }}>
-                                    {lesson.title}
-                                  </span>
-
-                                </div>
-
-                              </button>
-                            );
-                          }
-                        )}
-
-                      </div>
-                    )}
-
-                  </div>
-                );
-              })}
-
-            </div>
-
-          </aside>
-
-
-          {/* LESSON / VIDEO */}
-
-          <section>
-
-            <div style={{
-              background: "#fff",
-              borderRadius: "18px",
-              border: "1px solid #e2e8ee",
-              padding: "24px"
-            }}>
-
-              <div style={{
-                display: "flex",
-                justifyContent: "space-between",
-                gap: "20px",
-                alignItems: "start",
-                marginBottom: "20px"
-              }}>
-
-                <div>
-                  <div style={{
-                    fontSize: "11px",
-                    color: "#b18417",
-                    fontWeight: 900,
-                    letterSpacing: "1px"
-                  }}>
-                    MODULE{" "}
-                    {activeModule?.number || ""}
-                  </div>
-
-                  <h2 style={{
-                    margin: "6px 0 4px"
-                  }}>
-                    {activeModule?.title}
-                  </h2>
-
-                  <p style={{
-                    margin: 0,
-                    color: "#718096"
-                  }}>
-                    {activeModule?.description ||
-                      "Sélectionne une leçon pour commencer."}
-                  </p>
-                </div>
-
-              </div>
-
-
-              {/* VIDEO */}
-
-              <div style={{
-                background: "#07131f",
-                borderRadius: "16px",
-                overflow: "hidden",
-                minHeight: "420px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center"
-              }}>
-
-                {activeVideo?.url ? (
-                  <video
-                    key={activeVideo.id}
-                    controls
-                    playsInline
-                    preload="metadata"
-                    src={activeVideo.url}
-                    style={{
-                      width: "100%",
-                      display: "block",
-                      maxHeight: "680px",
-                      background: "#000"
-                    }}
-                  />
-                ) : (
-                  <div style={{
-                    color: "#fff",
-                    textAlign: "center",
-                    padding: "50px"
-                  }}>
-                    <strong>
-                      Cette leçon sera bientôt disponible.
-                    </strong>
-
-                    <p style={{
-                      opacity: .65
-                    }}>
-                      Le contenu sera ajouté prochainement.
-                    </p>
-                  </div>
-                )}
-
-              </div>
-
-
-              {/* LESSON INFO */}
-
-              <div style={{
-                paddingTop: "22px"
-              }}>
-
-                <div style={{
-                  fontSize: "11px",
-                  color: "#b18417",
-                  fontWeight: 900,
-                  letterSpacing: "1px"
-                }}>
-                  LEÇON
-                </div>
-
-                <h2 style={{
-                  margin: "6px 0"
-                }}>
-                  {activeLesson?.title ||
-                    "Aucune leçon sélectionnée"}
-                </h2>
-
-                <p style={{
-                  color: "#718096",
-                  lineHeight: 1.6,
-                  marginBottom: 0
-                }}>
-                  {activeLesson?.description ||
-                    "Regarde la vidéo puis poursuis ton parcours."}
-                </p>
-
-              </div>
-
-            </div>
-
-          </section>
-
+    return (
+      <div style={{ maxWidth: "1180px", margin: "0 auto", padding: "34px 28px 60px" }}>
+        <div style={{ marginBottom: "28px" }}>
+          <div style={{ fontSize: "12px", fontWeight: 800, letterSpacing: "2px", color: "#b07b00" }}>
+            SUIVI
+          </div>
+          <h1 style={{ margin: "7px 0", color: "#09233d", fontSize: "30px" }}>Ma progression</h1>
+          <p style={{ color: "#6b7a8c", margin: 0 }}>
+            {completedCount} leçon{completedCount !== 1 ? "s" : ""} terminée{completedCount !== 1 ? "s" : ""} sur {totalLessons} · {progress}%
+          </p>
         </div>
 
-      </main>
+        <div style={{
+          display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+          gap: "16px", marginBottom: "24px"
+        }}>
+          <StatCard title="Progression" value={`${progress}%`} icon="📈" />
+          <StatCard title="Leçons terminées" value={`${completedCount}`} icon="✅" />
+          <StatCard title="Leçons restantes" value={`${totalLessons - completedCount}`} icon="🎯" />
+          <StatCard title="Modules" value={`${studentModules.length}`} icon="📚" />
+        </div>
 
+        <div style={{ display: "grid", gap: "14px" }}>
+          {moduleStats.map(m => (
+            <div key={m.id} style={{
+              background: "#fff", border: "1px solid #e5e9ef",
+              borderRadius: "16px", padding: "20px"
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <strong style={{ color: "#09233d" }}>{m.title}</strong>
+                <strong style={{ color: "#b07b00" }}>{m.pct}%</strong>
+              </div>
+              <div style={{
+                marginTop: "12px", height: "8px",
+                background: "#edf0f3", borderRadius: "999px"
+              }}>
+                <div style={{
+                  width: `${m.pct}%`, height: "100%",
+                  background: "#f1bd3e", borderRadius: "999px"
+                }} />
+              </div>
+              <div style={{ marginTop: "8px", fontSize: "13px", color: "#6b7a8c" }}>
+                {m.done} / {m.total} leçons
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="app">
+      <StudentSidebar />
+      <main className="main">
+        <Topbar />
+        {studentPage === "dashboard" ? (
+          <StudentDashboard />
+        ) : studentPage === "formation" ? (
+          <StudentFormation
+            formation={formation}
+            modules={studentModules}
+            completed={completed}
+            onToggleCompleted={toggleCompleted}
+            user={user}
+          />
+        ) : studentPage === "documents" ? (
+          <DocumentsTemplates modules={studentModules} />
+        ) : studentPage === "model-game" ? (
+          <GameModelStudent user={user} />
+        ) : studentPage === "lives" ? (
+          <LivesReplaysStudent />
+        ) : studentPage === "progress" ? (
+          <StudentProgress />
+        ) : (
+          <StudentDashboard />
+        )}
+      </main>
     </div>
   );
 }
+
 
 function AdminApp() {
   async function logout() {
@@ -6865,8 +6362,21 @@ function AdminApp() {
             <FormationManager
               initialModules={modules}
             />
+          ) : platformPage === "documents" ? (
+            <DocumentsTemplates modules={modules} isAdmin={true} />
+          ) : platformPage === "quizzes" ? (
+            <QuizAdmin modules={modules} />
+          ) : platformPage === "lives" ? (
+            <LivesReplaysAdmin />
           ) : platformPage === "model-game" ? (
             <ModelGameSection />
+          ) : platformPage === "learners" ? (
+            <PlatformSection
+              page={platformPage}
+              navigate={navigatePlatform}
+              modules={modules}
+              completed={completed}
+            />
           ) : (
             <PlatformSection
               page={platformPage}

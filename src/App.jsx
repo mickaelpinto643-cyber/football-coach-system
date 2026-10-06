@@ -3415,6 +3415,163 @@ function PlatformSection({
     lesson => completed.includes(lesson.id)
   ).length;
 
+
+  // PAGE QUIZ — accès centralisé aux quiz des leçons
+  if (page === "quiz") {
+    return (
+      <div
+        style={{
+          maxWidth: "1180px",
+          margin: "0 auto",
+          padding: "40px 24px 80px"
+        }}
+      >
+        <div
+          style={{
+            marginBottom: "30px"
+          }}
+        >
+          <div
+            style={{
+              fontSize: "12px",
+              fontWeight: 800,
+              letterSpacing: "1.5px",
+              color: "#b07b00",
+              marginBottom: "8px"
+            }}
+          >
+            ÉVALUATION
+          </div>
+
+          <h1
+            style={{
+              margin: 0,
+              color: "#09233d",
+              fontSize: "34px"
+            }}
+          >
+            Quiz de validation
+          </h1>
+
+          <p
+            style={{
+              color: "#6b7a8c",
+              fontSize: "16px",
+              marginTop: "10px"
+            }}
+          >
+            Sélectionne une leçon pour accéder à son quiz de validation.
+          </p>
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+            gap: "18px"
+          }}
+        >
+          {learnerModules.map(module => (
+            <div
+              key={module.id}
+              style={{
+                background: "#fff",
+                border: "1px solid #e5eaf0",
+                borderRadius: "16px",
+                padding: "22px",
+                boxShadow: "0 8px 24px rgba(9,35,61,.06)"
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "12px",
+                  fontWeight: 800,
+                  color: "#b07b00",
+                  marginBottom: "6px"
+                }}
+              >
+                {module.number || `MODULE ${module.id}`}
+              </div>
+
+              <h2
+                style={{
+                  margin: "0 0 16px",
+                  color: "#09233d",
+                  fontSize: "20px"
+                }}
+              >
+                {module.title}
+              </h2>
+
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "10px"
+                }}
+              >
+                {(module.lessons || []).map((lesson, index) => (
+                  <button
+                    key={lesson.id}
+                    onClick={() =>
+                      navigate(
+                        "module:" +
+                        module.id +
+                        ":" +
+                        lesson.id
+                      )
+                    }
+                    style={{
+                      width: "100%",
+                      textAlign: "left",
+                      border: "1px solid #e5eaf0",
+                      background: "#f8fafc",
+                      borderRadius: "10px",
+                      padding: "13px 15px",
+                      cursor: "pointer",
+                      color: "#09233d"
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: "12px",
+                        fontWeight: 800,
+                        color: "#8a98a8",
+                        marginBottom: "3px"
+                      }}
+                    >
+                      LEÇON {index + 1}
+                    </div>
+
+                    <div
+                      style={{
+                        fontWeight: 700,
+                        fontSize: "14px"
+                      }}
+                    >
+                      {lesson.title || lesson.name || `Leçon ${index + 1}`}
+                    </div>
+
+                    <div
+                      style={{
+                        marginTop: "6px",
+                        fontSize: "12px",
+                        fontWeight: 800,
+                        color: "#b07b00"
+                      }}
+                    >
+                      Ouvrir la leçon →
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   const progress = allLessons.length
     ? Math.round(
         (completedCount / allLessons.length) * 100
@@ -5371,6 +5528,9 @@ function StudentPortalApp() {
 
       setAuthenticated(true);
       setUser(me.user);
+      console.log("FCS FORMATION API:", JSON.stringify(data.formation, null, 2));
+      console.log("FCS MODULES API:", JSON.stringify(data.formation?.modules || [], null, 2));
+
       setFormation(data.formation);
 
       const firstModule =
@@ -6355,6 +6515,25 @@ function StudentPortalApp() {
 }
 
 function AdminApp() {
+  async function logout() {
+    try {
+      await fetch(
+        window.location.protocol +
+          "//" +
+          window.location.hostname +
+          ":3001/api/auth/logout",
+        {
+          method: "POST",
+          credentials: "include"
+        }
+      );
+    } catch (err) {
+      console.error(err);
+    }
+
+    window.location.href = "/";
+  }
+
   const [page, setPage] = useState("dashboard");
   const [platformPage, setPlatformPage] = useState("home");
   const [activeModuleId, setActiveModuleId] = useState(1);

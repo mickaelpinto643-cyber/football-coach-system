@@ -109,3 +109,5 @@ vite.config.js.save
 # Scripts historiques
 clean-new-course.cjs
 restore-course.cjs
+
+.git-old-20261005/

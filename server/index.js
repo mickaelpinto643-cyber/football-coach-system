@@ -71,24 +71,31 @@ CREATE TABLE IF NOT EXISTS enrollments (
 );
 `);
 
-/* Seed a default admin account if none exists */
+/* Seed a default dev admin account if none exists.
+   The password is read from ADMIN_DEV_PASSWORD env var.
+   If not set, a random one is generated and printed once. */
 {
   const existing = authDb.prepare(
     "SELECT id FROM users WHERE role = 'admin' LIMIT 1"
   ).get();
 
   if (!existing) {
-    const salt = "a1b2c3d4e5f6a7b8";
-    const hash = scryptSync("admin12345", salt, 64).toString("hex");
+    const adminEmail = process.env.ADMIN_DEV_EMAIL || "admin@fcs.local";
+    const adminPassword = process.env.ADMIN_DEV_PASSWORD ||
+      randomBytes(12).toString("hex");
+
+    const passwordHash = hashPassword(adminPassword);
+
     authDb.prepare(`
       INSERT INTO users (email, password_hash, first_name, last_name, role, status)
       VALUES (?, ?, 'Admin', 'FCS', 'admin', 'active')
-    `).run("admin@fcs.local", `${salt}:${hash}`);
+    `).run(adminEmail, passwordHash);
 
     console.log("");
-    console.log("=== COMPTE ADMIN PAR DÉFAUT ===");
-    console.log("Email    : admin@fcs.local");
-    console.log("Password : admin12345");
+    console.log("=== COMPTE ADMIN DE DÉVELOPPEMENT ===");
+    console.log("Email    :", adminEmail);
+    console.log("Password :", adminPassword);
+    console.log("(Définis ADMIN_DEV_EMAIL / ADMIN_DEV_PASSWORD en .env pour personnaliser)");
     console.log("================================");
   }
 }

@@ -24,12 +24,24 @@ function GameModelStudent({ user }) {
     } catch { return {}; }
   });
   const [savedFlash, setSavedFlash] = useState(false);
+  const [aiInput, setAiInput] = useState("");
+  const [aiResult, setAiResult] = useState("");
+  const [aiError, setAiError] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiStatus, setAiStatus] = useState("loading");
 
   const key = `fcs-game-model-${user?.id || "anon"}`;
 
   useEffect(() => {
     localStorage.setItem(key, JSON.stringify(model));
   }, [model, key]);
+
+  useEffect(() => {
+    fetch("/api/ai/status", { credentials: "include" })
+      .then(r => r.json())
+      .then(d => setAiStatus(d.configured ? "ready" : "not_configured"))
+      .catch(() => setAiStatus("not_configured"));
+  }, []);
 
   function updateField(field, value) {
     setModel(prev => ({ ...prev, [field]: value }));
@@ -40,6 +52,43 @@ function GameModelStudent({ user }) {
 
   const filledCount = SECTIONS.filter(s => model[s.key]?.trim()).length;
   const progress = Math.round((filledCount / SECTIONS.length) * 100);
+
+  async function analyzeWithAI() {
+    setAiLoading(true);
+    setAiError("");
+    setAiResult("");
+
+    try {
+      const modelContext = SECTIONS
+        .map(s => model[s.key]?.trim() ? `${s.title}: ${model[s.key].trim()}` : null)
+        .filter(Boolean)
+        .join("\n");
+
+      const response = await fetch("/api/ai/game-model", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          input: aiInput.trim(),
+          modelContext
+        })
+      });
+
+      const text = await response.text();
+      let data = null;
+      if (text) { try { data = JSON.parse(text); } catch {} }
+
+      if (!response.ok) {
+        throw new Error((data && (data.error || data.message)) || "Erreur lors de l'analyse.");
+      }
+
+      setAiResult(data.analysis || data.result || "Aucune réponse reçue.");
+    } catch (error) {
+      setAiError(error.message);
+    } finally {
+      setAiLoading(false);
+    }
+  }
 
   return (
     <div style={{ maxWidth: "920px", margin: "0 auto", padding: "34px 28px 60px" }}>
@@ -135,7 +184,7 @@ function GameModelStudent({ user }) {
         ))}
       </div>
 
-      {/* ASSISTANT IA */}
+      {/* ASSISTANT IA — MODÈLE DE JEU */}
       <div style={{
         background: "#fff",
         border: "1px solid #e5eaf0",
@@ -158,31 +207,94 @@ function GameModelStudent({ user }) {
           </div>
           <div>
             <strong style={{ color: "#09233d", fontSize: "16px" }}>
-              Assistant FCS
+              Assistant IA — Modèle de jeu
             </strong>
             <div style={{ fontSize: "13px", color: "#9aa5b5" }}>
-              Analyse, questions, pistes de réflexion
+              Décris ton idée, un principe, un problème, une organisation ou une question tactique
             </div>
           </div>
         </div>
 
-        <div style={{
-          padding: "16px",
-          background: "#f8fafc",
-          borderRadius: "12px",
-          textAlign: "center",
-          color: "#7b8797",
-          fontSize: "14px"
-        }}>
-          <Brain size={32} style={{ opacity: 0.3, marginBottom: "10px" }} />
-          <p style={{ fontWeight: 600, color: "#09233d", marginBottom: "4px" }}>
-            Configuration IA requise
-          </p>
-          <p style={{ margin: 0, fontSize: "13px" }}>
-            L'assistant IA sera disponible une fois l'API configurée par l'administrateur.
-            En attendant, remis librement tes idées dans chaque section ci-dessus.
-          </p>
-        </div>
+        {aiStatus === "not_configured" ? (
+          <div style={{
+            padding: "16px",
+            background: "#f8fafc",
+            borderRadius: "12px",
+            textAlign: "center",
+            color: "#7b8797",
+            fontSize: "14px"
+          }}>
+            <Brain size={32} style={{ opacity: 0.3, marginBottom: "10px" }} />
+            <p style={{ fontWeight: 600, color: "#09233d", marginBottom: "4px" }}>
+              Assistant IA non configuré
+            </p>
+            <p style={{ margin: 0, fontSize: "13px" }}>
+              L'administrateur doit configurer la clé API pour activer l'assistant.
+            </p>
+          </div>
+        ) : (
+          <>
+            <textarea
+              value={aiInput}
+              onChange={e => setAiInput(e.target.value)}
+              placeholder="Ton idée, ton principe, ton problème, ton organisation, ta question tactique..."
+              rows={4}
+              style={{
+                width: "100%",
+                padding: "14px 16px",
+                border: "1px solid #dfe5eb",
+                borderRadius: "12px",
+                fontSize: "14px",
+                lineHeight: 1.6,
+                resize: "vertical",
+                fontFamily: "inherit",
+                outline: "none",
+                boxSizing: "border-box",
+                marginBottom: "12px"
+              }}
+            />
+
+            {aiError && (
+              <div style={{
+                padding: "12px 16px",
+                borderRadius: "10px",
+                background: "#fef2f2",
+                color: "#c0392b",
+                fontSize: "14px",
+                fontWeight: 600,
+                marginBottom: "12px"
+              }}>
+                {aiError}
+              </div>
+            )}
+
+            {aiResult && (
+              <div style={{
+                padding: "16px",
+                borderRadius: "12px",
+                background: "#f7f9fb",
+                border: "1px solid #e5eaf0",
+                fontSize: "14px",
+                lineHeight: 1.7,
+                color: "#09233d",
+                marginBottom: "12px",
+                whiteSpace: "pre-wrap"
+              }}>
+                {aiResult}
+              </div>
+            )}
+
+            <button
+              className="primaryButton"
+              onClick={analyzeWithAI}
+              disabled={aiLoading || !aiInput.trim()}
+              style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}
+            >
+              <Sparkles size={16} />
+              {aiLoading ? "Analyse en cours..." : "Analyser avec l'IA"}
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

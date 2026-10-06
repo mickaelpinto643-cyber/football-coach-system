@@ -3039,6 +3039,81 @@ const { registerContentRoutes } = require("./contentDb.cjs");
 
 registerContentRoutes(app);
 
+/* =========================================================
+   ASSISTANT IA — MODÈLE DE JEU
+   ========================================================= */
+
+app.get("/api/ai/status", (req, res) => {
+  const configured = Boolean(process.env.OPENAI_API_KEY);
+  res.json({ configured });
+});
+
+app.post("/api/ai/game-model", async (req, res) => {
+  const apiKey = process.env.OPENAI_API_KEY;
+
+  if (!apiKey) {
+    return res.status(503).json({
+      error: "Assistant IA non configuré."
+    });
+  }
+
+  const { input, modelContext } = req.body;
+
+  if (!input || !String(input).trim()) {
+    return res.status(400).json({
+      error: "Veuillez décrire votre idée ou question."
+    });
+  }
+
+  try {
+    const systemPrompt = [
+      "Tu es un assistant expert en football et en construction de modèle de jeu.",
+      "Tu aides un coach à structurer sa pensée tactique.",
+      "Réponds en français, de façon claire et structurée."
+    ].join(" ");
+
+    const userPrompt = modelContext
+      ? `Voici le modèle de jeu actuel du coach:\n${modelContext}\n\nQuestion / idée du coach:\n${input}`
+      : `Question / idée du coach:\n${input}`;
+
+    const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        max_tokens: 800,
+        temperature: 0.7
+      })
+    });
+
+    if (!openaiResponse.ok) {
+      const errText = await openaiResponse.text();
+      console.error("OpenAI API error:", openaiResponse.status, errText);
+      return res.status(502).json({
+        error: "Le service IA a retourné une erreur. Réessaie plus tard."
+      });
+    }
+
+    const aiData = await openaiResponse.json();
+    const analysis = aiData.choices?.[0]?.message?.content || "";
+
+    res.json({ analysis });
+
+  } catch (error) {
+    console.error("AI game-model error:", error);
+    res.status(500).json({
+      error: "Impossible de contacter l'assistant IA pour le moment."
+    });
+  }
+});
+
 const server = http.createServer(app);
 
 server.listen(3001, "127.0.0.1", () => {

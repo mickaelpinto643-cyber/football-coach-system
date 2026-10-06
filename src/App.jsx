@@ -2309,110 +2309,58 @@ function FormationManager({ initialModules = [] }) {
                     <div
                       style={{
                         display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "flex-start",
-                        gap: "20px",
+                        alignItems: "center",
+                        gap: "14px",
                         flexWrap: "wrap"
                       }}
                     >
-                      <div style={{ flex: "1 1 280px", minWidth: 0 }}>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "12px",
-                            marginBottom: "10px"
-                          }}
-                        >
-                          <div
-                            style={{
-                              width: "38px",
-                              height: "38px",
-                              borderRadius: "10px",
-                              background: "#09233d",
-                              color: "#f1bd3e",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              fontWeight: 900,
-                              fontSize: "15px",
-                              flexShrink: 0
-                            }}
-                          >
-                            {lessonNum}
-                          </div>
-
-                          <strong
-                            style={{
-                              fontSize: "17px",
-                              color: "#09233d",
-                              lineHeight: 1.3
-                            }}
-                          >
-                            {lesson.title}
-                          </strong>
-                        </div>
-
-                        <div
-                          style={{
-                            display: "flex",
-                            gap: "10px",
-                            flexWrap: "wrap",
-                            marginLeft: "50px"
-                          }}
-                        >
-                          <span
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: "6px",
-                              padding: "5px 12px",
-                              borderRadius: "8px",
-                              background: "#f0f5ff",
-                              color: "#2b5cb8",
-                              fontSize: "13px",
-                              fontWeight: 700
-                            }}
-                          >
-                            <PlaySquare size={15} />
-                            {videoCount} vidéo{videoCount !== 1 ? "s" : ""}
-                          </span>
-
-                          <span
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: "6px",
-                              padding: "5px 12px",
-                              borderRadius: "8px",
-                              background: "#fef6e7",
-                              color: "#b07b00",
-                              fontSize: "13px",
-                              fontWeight: 700
-                            }}
-                          >
-                            <FileText size={15} />
-                            {resourceCount} support{resourceCount !== 1 ? "s" : ""}
-                          </span>
-
-                          <span
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: "6px",
-                              padding: "5px 12px",
-                              borderRadius: "8px",
-                              background: isPublished ? "#e8f5ee" : "#f5f5f5",
-                              color: isPublished ? "#287a55" : "#999",
-                              fontSize: "13px",
-                              fontWeight: 700
-                            }}
-                          >
-                            {isPublished ? <CheckCircle2 size={15} /> : <Circle size={15} />}
-                            {isPublished ? "Publié" : "Brouillon"}
-                          </span>
-                        </div>
+                      <div
+                        style={{
+                          width: "38px",
+                          height: "38px",
+                          borderRadius: "10px",
+                          background: "#09233d",
+                          color: "#f1bd3e",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontWeight: 900,
+                          fontSize: "15px",
+                          flexShrink: 0
+                        }}
+                      >
+                        {lessonNum}
                       </div>
+
+                      <strong
+                        style={{
+                          fontSize: "17px",
+                          color: "#09233d",
+                          lineHeight: 1.3,
+                          flex: "1 1 200px",
+                          minWidth: 0
+                        }}
+                      >
+                        {lesson.title}
+                      </strong>
+
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          padding: "5px 12px",
+                          borderRadius: "8px",
+                          background: isPublished ? "#e8f5ee" : "#f5f5f5",
+                          color: isPublished ? "#287a55" : "#999",
+                          fontSize: "13px",
+                          fontWeight: 700,
+                          flexShrink: 0
+                        }}
+                      >
+                        {isPublished ? <CheckCircle2 size={15} /> : <Circle size={15} />}
+                        {isPublished ? "Publié" : "Brouillon"}
+                      </span>
 
                       <button
                         className="primaryButton"
@@ -2424,6 +2372,50 @@ function FormationManager({ initialModules = [] }) {
                       >
                         Gérer le contenu
                       </button>
+                    </div>
+
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "14px",
+                        flexWrap: "wrap",
+                        marginLeft: "52px",
+                        marginTop: "14px"
+                      }}
+                    >
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          padding: "5px 12px",
+                          borderRadius: "8px",
+                          background: "#f0f5ff",
+                          color: "#2b5cb8",
+                          fontSize: "13px",
+                          fontWeight: 700
+                        }}
+                      >
+                        <PlaySquare size={15} />
+                        {videoCount} vidéo{videoCount !== 1 ? "s" : ""}
+                      </span>
+
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          padding: "5px 12px",
+                          borderRadius: "8px",
+                          background: "#fef6e7",
+                          color: "#b07b00",
+                          fontSize: "13px",
+                          fontWeight: 700
+                        }}
+                      >
+                        <FileText size={15} />
+                        {resourceCount} support{resourceCount !== 1 ? "s" : ""}
+                      </span>
                     </div>
 
                     {contentLessonId === lesson.id && (

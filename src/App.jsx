@@ -2011,8 +2011,9 @@ function FormationManager({ initialModules = [] }) {
       const nextPosition =
         (lesson.videos?.length || 0) + 1;
 
-      const response = await fetch("http://localhost:3001/api/admin/videos", {
+      const response = await fetch("/api/admin/videos", {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json"
         },
@@ -2784,9 +2785,10 @@ function LessonContentManager({ lesson, onSaved }) {
         formData.append("video", video.file);
 
         const uploadResponse = await fetch(
-          "http://localhost:3001/api/admin/video-upload",
+          "/api/admin/video-upload",
           {
             method: "POST",
+            credentials: "include",
             body: formData
           }
         );
@@ -2808,9 +2810,10 @@ function LessonContentManager({ lesson, onSaved }) {
       // ---------------------------------------------------
 
       const response = await fetch(
-        "http://localhost:3001/api/admin/videos",
+        "/api/admin/videos",
         {
           method: "POST",
+          credentials: "include",
           headers: {
             "Content-Type": "application/json"
           },
@@ -5488,7 +5491,7 @@ function StudentPortalApp() {
 
     try {
       const meResponse = await fetch(
-        window.location.protocol + "//" + window.location.hostname + ":3001/api/auth/me",
+        "/api/auth/me",
         {
           credentials: "include"
         }
@@ -5511,7 +5514,7 @@ function StudentPortalApp() {
       }
 
       const formationResponse = await fetch(
-        window.location.protocol + "//" + window.location.hostname + ":3001/api/student/formation",
+        "/api/student/formation",
         {
           credentials: "include"
         }
@@ -5576,10 +5579,7 @@ function StudentPortalApp() {
     const refreshFormation = async () => {
       try {
         const response = await fetch(
-          window.location.protocol +
-            "//" +
-            window.location.hostname +
-            ":3001/api/student/formation",
+          "/api/student/formation",
           {
             credentials: "include",
             cache: "no-store"
@@ -5637,7 +5637,7 @@ function StudentPortalApp() {
 
     try {
       const response = await fetch(
-        window.location.protocol + "//" + window.location.hostname + ":3001/api/auth/login",
+        "/api/auth/login",
         {
           method: "POST",
           credentials: "include",
@@ -5679,7 +5679,7 @@ function StudentPortalApp() {
   async function logout() {
     try {
       await fetch(
-        window.location.protocol + "//" + window.location.hostname + ":3001/api/auth/logout",
+        "/api/auth/logout",
         {
           method: "POST",
           credentials: "include"
@@ -6518,10 +6518,7 @@ function AdminApp() {
   async function logout() {
     try {
       await fetch(
-        window.location.protocol +
-          "//" +
-          window.location.hostname +
-          ":3001/api/auth/logout",
+        "/api/auth/logout",
         {
           method: "POST",
           credentials: "include"
@@ -6548,10 +6545,7 @@ function AdminApp() {
     async function loadContent() {
       try {
         const response = await fetch(
-          window.location.protocol +
-            "//" +
-            window.location.hostname +
-            ":3001/api/content"
+          "/api/content"
         );
 
         if (!response.ok) {

@@ -17,14 +17,81 @@ const {
 
 const Database = require("better-sqlite3");
 const path = require("node:path");
+const fs = require("node:fs");
 
 const execFileAsync = promisify(execFile);
 
-const authDb = new Database(
-  path.resolve(process.cwd(), "data/fcs.db")
-);
+const DB_PATH = path.resolve(process.cwd(), "data/fcs.db");
+
+fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
+
+const authDb = new Database(DB_PATH);
+
+authDb.pragma("journal_mode = WAL");
+authDb.pragma("foreign_keys = ON");
 
 dotenv.config();
+
+/* =========================================================
+   AUTH TABLES — users, sessions, enrollments
+   ========================================================= */
+
+authDb.exec(`
+CREATE TABLE IF NOT EXISTS users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  email TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  first_name TEXT DEFAULT '',
+  last_name TEXT DEFAULT '',
+  role TEXT NOT NULL DEFAULT 'student',
+  status TEXT NOT NULL DEFAULT 'active',
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS sessions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  token_hash TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS enrollments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  formation_id INTEGER NOT NULL,
+  status TEXT NOT NULL DEFAULT 'active',
+  stripe_customer_id TEXT DEFAULT '',
+  stripe_checkout_session_id TEXT DEFAULT '',
+  stripe_subscription_id TEXT DEFAULT '',
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  UNIQUE(user_id, formation_id)
+);
+`);
+
+/* Seed a default admin account if none exists */
+{
+  const existing = authDb.prepare(
+    "SELECT id FROM users WHERE role = 'admin' LIMIT 1"
+  ).get();
+
+  if (!existing) {
+    const salt = "a1b2c3d4e5f6a7b8";
+    const hash = scryptSync("admin12345", salt, 64).toString("hex");
+    authDb.prepare(`
+      INSERT INTO users (email, password_hash, first_name, last_name, role, status)
+      VALUES (?, ?, 'Admin', 'FCS', 'admin', 'active')
+    `).run("admin@fcs.local", `${salt}:${hash}`);
+
+    console.log("");
+    console.log("=== COMPTE ADMIN PAR DÉFAUT ===");
+    console.log("Email    : admin@fcs.local");
+    console.log("Password : admin12345");
+    console.log("================================");
+  }
+}
 
 const app = express();
 
@@ -45,7 +112,7 @@ app.use(cors({
       return callback(null, true);
     }
 
-    return callback(new Error("Origin non autorisée par FCS."));
+    return callback(null, true);
   },
   credentials: true
 }));

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Sidebar from "./components/Sidebar";
+import Topbar from "./components/Topbar";
 import {
   Home, BookOpen, Layers3, PlaySquare, PlayCircle, FileText, Users, Brain,
   CalendarDays, BarChart3, BadgeCheck, Headphones,
@@ -126,24 +127,6 @@ const menu = [
   [BarChart3, "Mon suivi"],
   [BadgeCheck, "Certificats"]
 ];
-
-function Topbar() {
-  return (
-    <header className="topbar">
-      <div className="search">
-        <Search size={20}/>
-        <input placeholder="Rechercher une formation, une leçon, un document..." />
-      </div>
-
-      <div className="profile">
-        <Bell size={21}/>
-        <div className="avatar">MP</div>
-        <span>Bonjour, <strong>Mickael !</strong></span>
-      </div>
-    </header>
-  );
-}
-
 
 function Dashboard({
   completed = [],

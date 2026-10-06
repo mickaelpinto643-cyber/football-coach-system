@@ -16,6 +16,7 @@ import {
   getLessonTranscript
 } from "./data/lessonContent";
 import { courseVideos } from "./data/courseVideos";
+import contentExport from "../content-export.json";
 
 
 function normalizeVideoUrl(value) {
@@ -30,6 +31,69 @@ function normalizeVideoUrl(value) {
   }
 
   return raw;
+}
+
+function normalizeApiModules(data) {
+  return (data.modules || []).map(module => ({
+    id: module.id,
+    number: `MODULE ${module.number}`,
+    title: module.title,
+    image: module.image || "",
+    lessons: (module.lessons || []).map(lesson => ({
+      id: lesson.lesson_key,
+      title: lesson.title,
+      description: lesson.description || "",
+      videos: (lesson.videos || []).map(video => ({
+        ...video,
+        moduleId: module.id,
+        lessonId: lesson.id,
+        url: normalizeVideoUrl(video.url)
+      })),
+      resources: lesson.resources || []
+    }))
+  }));
+}
+
+function getFallbackModules() {
+  try {
+    const data = contentExport;
+    const lessonsByModule = {};
+    const videosByLesson = {};
+
+    for (const video of data.videos || []) {
+      if (!videosByLesson[video.lesson_id]) {
+        videosByLesson[video.lesson_id] = [];
+      }
+      videosByLesson[video.lesson_id].push(video);
+    }
+
+    for (const lesson of data.lessons || []) {
+      if (!lessonsByModule[lesson.module_id]) {
+        lessonsByModule[lesson.module_id] = [];
+      }
+      lessonsByModule[lesson.module_id].push({
+        ...lesson,
+        videos: (videosByLesson[lesson.id] || []).sort(
+          (a, b) => (a.position || 0) - (b.position || 0)
+        ),
+        resources: []
+      });
+    }
+
+    const apiData = {
+      formation: (data.formations || [])[0] || null,
+      modules: (data.modules || []).map(module => ({
+        ...module,
+        lessons: (lessonsByModule[module.id] || []).sort(
+          (a, b) => (a.position || 0) - (b.position || 0)
+        )
+      }))
+    };
+
+    return normalizeApiModules(apiData);
+  } catch {
+    return [];
+  }
 }
 
 const courseModules = [
@@ -411,7 +475,7 @@ function Dashboard({
       }}>
 
         {[
-          ["Formations", safeModules.length],
+          ["Formations", 1],
           ["Leçons", totalLessons],
           ["Vidéos", totalVideos]
         ].map(([label, value]) => (
@@ -6554,24 +6618,7 @@ function AdminApp() {
 
         const data = await response.json();
 
-        const modules = (data.modules || []).map(module => ({
-          id: module.id,
-          number: `MODULE ${module.number}`,
-          title: module.title,
-          image: module.image || "",
-          lessons: (module.lessons || []).map(lesson => ({
-            id: lesson.lesson_key,
-            title: lesson.title,
-            description: lesson.description || "",
-            videos: (lesson.videos || []).map(video => ({
-              ...video,
-              moduleId: module.id,
-              lessonId: lesson.id,
-              url: normalizeVideoUrl(video.url)
-            })),
-            resources: lesson.resources || []
-          }))
-        }));
+        const modules = normalizeApiModules(data);
 
         console.log(
           "🔥 CMS FRONTEND :",
@@ -6610,6 +6657,18 @@ function AdminApp() {
           "⚠️ API CMS indisponible — utilisation du catalogue local",
           error
         );
+
+        const fallback = getFallbackModules();
+
+        if (!cancelled && fallback.length) {
+          setApiModules(fallback);
+
+          setActiveModuleId(current => {
+            return fallback.some(module => module.id === current)
+              ? current
+              : fallback[0].id;
+          });
+        }
       }
     }
 
@@ -6734,7 +6793,7 @@ function AdminApp() {
               completed={completed}
             />
           )
-        ) : (
+        ) : page === "module" && activeModule ? (
           <ModulePage
             key={`${activeModuleId}:${initialLessonId || "auto"}`}
             module={activeModule}
@@ -6742,6 +6801,12 @@ function AdminApp() {
             toggleCompleted={toggleCompleted}
             onBack={goHome}
             initialLessonId={initialLessonId}
+          />
+        ) : (
+          <Dashboard
+            completed={completed}
+            openModule={openModule}
+            modules={modules}
           />
         )}
       </main>

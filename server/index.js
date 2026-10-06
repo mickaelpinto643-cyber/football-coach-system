@@ -2146,6 +2146,11 @@ app.post("/api/auth/login", (req, res) => {
 
     const password = String(req.body?.password || "");
 
+    console.log("[LOGIN REAL] email reçu =", email);
+    console.log("[LOGIN REAL] password length =", password.length);
+    console.log("[LOGIN REAL] Content-Type =", req.headers["content-type"]);
+    console.log("[LOGIN REAL] body keys =", Object.keys(req.body || {}));
+
     const user = authDb.prepare(`
       SELECT
         id,
@@ -2158,6 +2163,16 @@ app.post("/api/auth/login", (req, res) => {
       FROM users
       WHERE email = ?
     `).get(email);
+
+    console.log("[LOGIN REAL] user trouvé =", user ? true : false);
+    console.log("[LOGIN REAL] hash présent =", user ? Boolean(user.password_hash) : false);
+
+    if (user) {
+      const pwOk = verifyPassword(password, user.password_hash);
+      console.log("[LOGIN REAL] password compare =", pwOk);
+      console.log("[LOGIN REAL] role =", user.role);
+      console.log("[LOGIN REAL] status =", user.status);
+    }
 
     if (
       !user ||

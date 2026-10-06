@@ -1,0 +1,665 @@
+{
+  "_meta": {
+    "exported_at": "2026-10-06T13:10:36.532Z",
+    "tables": [
+      "formations",
+      "modules",
+      "lessons",
+      "videos",
+      "resources",
+      "quizzes",
+      "quiz_questions"
+    ]
+  },
+  "formations": [
+    {
+      "id": 1,
+      "title": "Football Coach System",
+      "description": "Formation Football Coach System",
+      "image": "",
+      "published": 1,
+      "created_at": "2026-09-30 05:26:24",
+      "updated_at": "2026-09-30 05:26:24"
+    }
+  ],
+  "modules": [
+    {
+      "id": 1,
+      "formation_id": 1,
+      "module_key": "m1",
+      "number": "1",
+      "title": "Module 1",
+      "description": "",
+      "image": "",
+      "position": 1,
+      "published": 1
+    },
+    {
+      "id": 14,
+      "formation_id": 1,
+      "module_key": "m2",
+      "number": "2",
+      "title": "Module 2",
+      "description": "",
+      "image": "",
+      "position": 2,
+      "published": 1
+    },
+    {
+      "id": 1189,
+      "formation_id": 1,
+      "module_key": "m3",
+      "number": "3",
+      "title": "Construire son modèle de jeu : créer l’identité de son équipe",
+      "description": "",
+      "image": "",
+      "position": 3,
+      "published": 1
+    },
+    {
+      "id": 1213,
+      "formation_id": 1,
+      "module_key": "m5",
+      "number": "5",
+      "title": "Module 5",
+      "description": "",
+      "image": "",
+      "position": 5,
+      "published": 1
+    },
+    {
+      "id": 1218,
+      "formation_id": 1,
+      "module_key": "m4",
+      "number": "4",
+      "title": "Module 4",
+      "description": "",
+      "image": "",
+      "position": 4,
+      "published": 1
+    }
+  ],
+  "lessons": [
+    {
+      "id": 1,
+      "module_id": 1,
+      "lesson_key": "m1-l1",
+      "title": "LE RÔLE DE L'ENTRAINEUR",
+      "description": "",
+      "position": 1,
+      "published": 1
+    },
+    {
+      "id": 2,
+      "module_id": 1,
+      "lesson_key": "m1-l2",
+      "title": "LES RESPONSABILITÉS DE L'ENTRAINEUR",
+      "description": "",
+      "position": 2,
+      "published": 1
+    },
+    {
+      "id": 3,
+      "module_id": 1,
+      "lesson_key": "m1-l3",
+      "title": "LES COMPÉTENCES DE L'ENTRAINEUR",
+      "description": "",
+      "position": 3,
+      "published": 1
+    },
+    {
+      "id": 4,
+      "module_id": 1,
+      "lesson_key": "m1-l4",
+      "title": "LES QUALITÉS D'UN ENTRAINEUR PERFORMANT",
+      "description": "",
+      "position": 4,
+      "published": 1
+    },
+    {
+      "id": 5,
+      "module_id": 1,
+      "lesson_key": "m1-l5",
+      "title": "CONSTRUIRE SA PHILOSOPHIE",
+      "description": "",
+      "position": 5,
+      "published": 1
+    },
+    {
+      "id": 6,
+      "module_id": 1,
+      "lesson_key": "m1-l6",
+      "title": "COMMUNICATION ET POSTURE PROFESSIONNELLE",
+      "description": "",
+      "position": 6,
+      "published": 1
+    },
+    {
+      "id": 7,
+      "module_id": 1,
+      "lesson_key": "m1-l7",
+      "title": "PRISE DE DÉCISION",
+      "description": "",
+      "position": 7,
+      "published": 1
+    },
+    {
+      "id": 8,
+      "module_id": 1,
+      "lesson_key": "m1-l8",
+      "title": "L'ETHIQUE DE L'ENTRAINEUR",
+      "description": "",
+      "position": 8,
+      "published": 1
+    },
+    {
+      "id": 10,
+      "module_id": 1,
+      "lesson_key": "m1-l9",
+      "title": "ERREURS LES PLUS FRÉQUENTES",
+      "description": "",
+      "position": 9,
+      "published": 1
+    },
+    {
+      "id": 12,
+      "module_id": 1,
+      "lesson_key": "m1-l10",
+      "title": "CONSTRUIRE SA MÉTHODE DE TRAVAIL",
+      "description": "",
+      "position": 10,
+      "published": 1
+    },
+    {
+      "id": 14,
+      "module_id": 14,
+      "lesson_key": "m2-l1",
+      "title": "COMPRENDRE LE FOOTBALL COMME SYSTÈME",
+      "description": "",
+      "position": 1,
+      "published": 1
+    },
+    {
+      "id": 16,
+      "module_id": 14,
+      "lesson_key": "m2-l2",
+      "title": "PRINCIPES FONDAMENTAUX DU JEU",
+      "description": "",
+      "position": 2,
+      "published": 1
+    },
+    {
+      "id": 18,
+      "module_id": 14,
+      "lesson_key": "m2-l3",
+      "title": "LES 4 PHASES DU JEU",
+      "description": "",
+      "position": 3,
+      "published": 1
+    },
+    {
+      "id": 20,
+      "module_id": 14,
+      "lesson_key": "m2-l4",
+      "title": "LES PRINCIPES , SOUS PRINCIPES ET SOUS SOUS PRINCIPES",
+      "description": "",
+      "position": 4,
+      "published": 1
+    },
+    {
+      "id": 22,
+      "module_id": 14,
+      "lesson_key": "m2-l5",
+      "title": "L'ESPACE ET LE TEMPS",
+      "description": "",
+      "position": 5,
+      "published": 1
+    },
+    {
+      "id": 23,
+      "module_id": 14,
+      "lesson_key": "m2-l6",
+      "title": "COMPRENDRE LES SUPÉRIORITÉS",
+      "description": "",
+      "position": 6,
+      "published": 1
+    },
+    {
+      "id": 1189,
+      "module_id": 1189,
+      "lesson_key": "m3-l1",
+      "title": "Première séance",
+      "description": "",
+      "position": 1,
+      "published": 1
+    },
+    {
+      "id": 1213,
+      "module_id": 1213,
+      "lesson_key": "m5-l1",
+      "title": "OBJECTIF DE LA PRÉPARATION PHYSIQUE",
+      "description": "",
+      "position": 1,
+      "published": 1
+    },
+    {
+      "id": 1214,
+      "module_id": 1213,
+      "lesson_key": "m5-l2",
+      "title": "LES DIFFÉRENTES PRÉPARATION PHYSIQUE",
+      "description": "",
+      "position": 2,
+      "published": 1
+    },
+    {
+      "id": 1215,
+      "module_id": 1213,
+      "lesson_key": "m5-l3",
+      "title": "LES TESTS D'ÉVALUATION",
+      "description": "",
+      "position": 3,
+      "published": 1
+    },
+    {
+      "id": 1216,
+      "module_id": 1213,
+      "lesson_key": "m5-l4",
+      "title": "PLANNIFICATION D'ENTRAINEMENT ET PROGRAMME PRÉ-SAISON",
+      "description": "",
+      "position": 4,
+      "published": 1
+    },
+    {
+      "id": 1217,
+      "module_id": 1213,
+      "lesson_key": "m5-l5",
+      "title": "PRÉVENTION DES BLESSURES",
+      "description": "",
+      "position": 5,
+      "published": 1
+    },
+    {
+      "id": 1218,
+      "module_id": 1218,
+      "lesson_key": "m4-l1",
+      "title": "LES DIFFÉRENTS MOMENTS DU JEU",
+      "description": "",
+      "position": 1,
+      "published": 1
+    },
+    {
+      "id": 1220,
+      "module_id": 1218,
+      "lesson_key": "m4-l2",
+      "title": "LES SYSTÈMES DE JEU",
+      "description": "",
+      "position": 2,
+      "published": 1
+    },
+    {
+      "id": 1223,
+      "module_id": 1218,
+      "lesson_key": "m4-l3",
+      "title": "ANALYSER L'ADVERSAIRE",
+      "description": "",
+      "position": 3,
+      "published": 1
+    },
+    {
+      "id": 1224,
+      "module_id": 1218,
+      "lesson_key": "m4-l4",
+      "title": "ANALYSE VIDÉO",
+      "description": "",
+      "position": 4,
+      "published": 1
+    },
+    {
+      "id": 1225,
+      "module_id": 1218,
+      "lesson_key": "m4-l5",
+      "title": "PHASES ARRÊTÉES",
+      "description": "",
+      "position": 5,
+      "published": 1
+    }
+  ],
+  "videos": [
+    {
+      "id": 38,
+      "lesson_id": 2,
+      "title": "Partie 1",
+      "url": "https://d1yei2z3i6k35z.cloudfront.net/2029314/6a62289c0b2652.72981937_Lesresponsabilit%C3%A9sdelentraineur.mp4",
+      "position": 1,
+      "published": 1,
+      "duration": 0
+    },
+    {
+      "id": 39,
+      "lesson_id": 3,
+      "title": "Partie 1",
+      "url": "https://d1yei2z3i6k35z.cloudfront.net/2029314/6a6331ff377569.07693716_Lescomp%C3%A9tencesdelentraineur.mp4",
+      "position": 1,
+      "published": 1,
+      "duration": 0
+    },
+    {
+      "id": 40,
+      "lesson_id": 4,
+      "title": "Partie 1",
+      "url": "https://d1yei2z3i6k35z.cloudfront.net/2029314/6a63469b1826c1.58140068_EntraineurPerformant.mp4",
+      "position": 1,
+      "published": 1,
+      "duration": 0
+    },
+    {
+      "id": 41,
+      "lesson_id": 5,
+      "title": "Partie 1",
+      "url": "https://d1yei2z3i6k35z.cloudfront.net/2029314/6a64728f313c60.32370360_Philosophiedejeu.mp4",
+      "position": 1,
+      "published": 1,
+      "duration": 0
+    },
+    {
+      "id": 42,
+      "lesson_id": 6,
+      "title": "Partie 1",
+      "url": "https://d1yei2z3i6k35z.cloudfront.net/2029314/6a684f5f504180.01621645_CommunicationetPosture.mp4",
+      "position": 1,
+      "published": 1,
+      "duration": 0
+    },
+    {
+      "id": 43,
+      "lesson_id": 7,
+      "title": "Partie 1",
+      "url": "https://d1yei2z3i6k35z.cloudfront.net/2029314/6a68867e7520d5.14645830_PrisedeD%C3%A9cisionFinal.mp4",
+      "position": 1,
+      "published": 1,
+      "duration": 0
+    },
+    {
+      "id": 44,
+      "lesson_id": 8,
+      "title": "Partie 1",
+      "url": "https://d1yei2z3i6k35z.cloudfront.net/2029314/6a68ae9d7f5fd7.52993837_Lethiquedelentraineur.mp4",
+      "position": 1,
+      "published": 1,
+      "duration": 0
+    },
+    {
+      "id": 45,
+      "lesson_id": 8,
+      "title": "Partie 2",
+      "url": "https://d1yei2z3i6k35z.cloudfront.net/2029314/6a69dfb25a89c8.77220263_LEthiquepartie2.mp4",
+      "position": 2,
+      "published": 1,
+      "duration": 0
+    },
+    {
+      "id": 46,
+      "lesson_id": 10,
+      "title": "Partie 1",
+      "url": "https://d1yei2z3i6k35z.cloudfront.net/2029314/6a69ecc3199b33.96310658_ErreursFr%C3%A9quentes.mp4",
+      "position": 1,
+      "published": 1,
+      "duration": 0
+    },
+    {
+      "id": 47,
+      "lesson_id": 10,
+      "title": "Partie 2",
+      "url": "https://d1yei2z3i6k35z.cloudfront.net/2029314/6a69fcdbca0ae5.65895911_Erreursfr%C3%A9quentesPartie2.mp4",
+      "position": 2,
+      "published": 1,
+      "duration": 0
+    },
+    {
+      "id": 48,
+      "lesson_id": 12,
+      "title": "Partie 1",
+      "url": "https://d1yei2z3i6k35z.cloudfront.net/2029314/6a6a09674af696.99519526_Construiresam%C3%A9thode.mp4",
+      "position": 1,
+      "published": 1,
+      "duration": 0
+    },
+    {
+      "id": 49,
+      "lesson_id": 12,
+      "title": "Partie 2",
+      "url": "https://d1yei2z3i6k35z.cloudfront.net/2029314/6a6a139de15235.48767351_Construiresam%C3%A9thodePartie2.mp4",
+      "position": 2,
+      "published": 1,
+      "duration": 0
+    },
+    {
+      "id": 50,
+      "lesson_id": 14,
+      "title": "Partie 1",
+      "url": "https://d1yei2z3i6k35z.cloudfront.net/2029314/6a6b3b788e9408.11712497_Comprendrelefootballecommesyst%C3%A8me.mp4",
+      "position": 1,
+      "published": 1,
+      "duration": 0
+    },
+    {
+      "id": 51,
+      "lesson_id": 14,
+      "title": "Partie 2",
+      "url": "https://d1yei2z3i6k35z.cloudfront.net/2029314/6a6b4745dda2a3.82386698_Comprendrelefootballcommesyst%C3%A8mePartie2.mp4",
+      "position": 2,
+      "published": 1,
+      "duration": 0
+    },
+    {
+      "id": 52,
+      "lesson_id": 16,
+      "title": "Partie 1",
+      "url": "https://d1yei2z3i6k35z.cloudfront.net/2029314/6a6c3f083056b9.91776092_Lesprincipesfondamentauxdujeu.mp4",
+      "position": 1,
+      "published": 1,
+      "duration": 0
+    },
+    {
+      "id": 53,
+      "lesson_id": 16,
+      "title": "Partie 2",
+      "url": "https://d1yei2z3i6k35z.cloudfront.net/2029314/6a6c3f083056b9.91776092_Lesprincipesfondamentauxdujeu.mp4",
+      "position": 2,
+      "published": 1,
+      "duration": 0
+    },
+    {
+      "id": 54,
+      "lesson_id": 18,
+      "title": "Partie 1",
+      "url": "https://d1yei2z3i6k35z.cloudfront.net/2029314/6a79c0feb9dcf2.65637696_2.3LES4PHASESDUJEU.mp4",
+      "position": 1,
+      "published": 1,
+      "duration": 0
+    },
+    {
+      "id": 55,
+      "lesson_id": 18,
+      "title": "Partie 2",
+      "url": "https://d1yei2z3i6k35z.cloudfront.net/2029314/6a79ce45251e27.35741445_Les4phasesdujeuPartie2.mp4",
+      "position": 2,
+      "published": 1,
+      "duration": 0
+    },
+    {
+      "id": 56,
+      "lesson_id": 20,
+      "title": "Partie 1",
+      "url": "https://d1yei2z3i6k35z.cloudfront.net/2029314/6a7acc7b4aad78.41676630_LEsprincipesetsousprincipesPARTIE1.mp4",
+      "position": 1,
+      "published": 1,
+      "duration": 0
+    },
+    {
+      "id": 57,
+      "lesson_id": 20,
+      "title": "Partie 2",
+      "url": "https://d1yei2z3i6k35z.cloudfront.net/2029314/6a959d04a93916.14197611_PrincipesetsousprincipesPartie2.mp4",
+      "position": 2,
+      "published": 1,
+      "duration": 0
+    },
+    {
+      "id": 58,
+      "lesson_id": 22,
+      "title": "Partie 1",
+      "url": "https://d1yei2z3i6k35z.cloudfront.net/2029314/6a97e7a88515b3.59932433_Comprendrelespaceetletemps.mp4",
+      "position": 1,
+      "published": 1,
+      "duration": 0
+    },
+    {
+      "id": 59,
+      "lesson_id": 23,
+      "title": "Partie 1",
+      "url": "https://d1yei2z3i6k35z.cloudfront.net/2029314/6a994ad2e04fa0.67442425_Lessup%C3%A9riorit%C3%A9s.mp4",
+      "position": 1,
+      "published": 1,
+      "duration": 0
+    },
+    {
+      "id": 75,
+      "lesson_id": 1,
+      "title": "Partie 1",
+      "url": "https://d1yei2z3i6k35z.cloudfront.net/2029314/6a621476e4f3d7.93014667_M1Roledelentraineur.mp4",
+      "position": 1,
+      "published": 1,
+      "duration": 0
+    },
+    {
+      "id": 76,
+      "lesson_id": 1189,
+      "title": "Partie 1",
+      "url": "https://d1yei2z3i6k35z.cloudfront.net/2029314/6a999bc2a51c84.25678356_Construiresonmodèledejeu.mp4",
+      "position": 1,
+      "published": 1,
+      "duration": 3541
+    },
+    {
+      "id": 77,
+      "lesson_id": 1213,
+      "title": "Partie 1",
+      "url": "https://d1yei2z3i6k35z.cloudfront.net/2029314/66fa9fb1605dd_5.1OBJECTIFDELAPREPARATIONPHYSIQUE.mp4",
+      "position": 1,
+      "published": 1,
+      "duration": 0
+    },
+    {
+      "id": 78,
+      "lesson_id": 1214,
+      "title": "Partie 1",
+      "url": "https://d1yei2z3i6k35z.cloudfront.net/2029314/66fd3ddc1e174_5.2LESDIFFERENTESPREPARATIONPHYSIQUE.mp4",
+      "position": 1,
+      "published": 1,
+      "duration": 0
+    },
+    {
+      "id": 79,
+      "lesson_id": 1215,
+      "title": "Partie 1",
+      "url": "https://d1yei2z3i6k35z.cloudfront.net/2029314/670394ea33c6e_5.3LESTESTSDEVALUATION.mp4",
+      "position": 1,
+      "published": 1,
+      "duration": 0
+    },
+    {
+      "id": 80,
+      "lesson_id": 1216,
+      "title": "Partie 1",
+      "url": "https://d1yei2z3i6k35z.cloudfront.net/2029314/670796e9404a6_5.4PLANNIFICATIONETPROGRAMMATIONPRE-SAISON.mp4",
+      "position": 1,
+      "published": 1,
+      "duration": 0
+    },
+    {
+      "id": 81,
+      "lesson_id": 1217,
+      "title": "Partie 1",
+      "url": "https://d1yei2z3i6k35z.cloudfront.net/2029314/6707a965e5ce2_5.5PREVENTIONDESBLESSURES.mp4",
+      "position": 1,
+      "published": 1,
+      "duration": 0
+    },
+    {
+      "id": 82,
+      "lesson_id": 1218,
+      "title": "Partie 1",
+      "url": "https://d1yei2z3i6k35z.cloudfront.net/2029314/66e2b00b740bb_4.1Partie1Lesdifferentsmomentsdujeu.mp4",
+      "position": 1,
+      "published": 1,
+      "duration": 0
+    },
+    {
+      "id": 83,
+      "lesson_id": 1218,
+      "title": "Partie 2",
+      "url": "https://d1yei2z3i6k35z.cloudfront.net/2029314/66e2c7a699ac8_4.1LesdifferentsmomentsdujeuPARTIE2.mp4",
+      "position": 2,
+      "published": 1,
+      "duration": 0
+    },
+    {
+      "id": 84,
+      "lesson_id": 1220,
+      "title": "Partie 1",
+      "url": "https://d1yei2z3i6k35z.cloudfront.net/2029314/66e7f05a6b2a1_4.2LESSYSTEMESDEJEUPARTIE1.mp4",
+      "position": 1,
+      "published": 1,
+      "duration": 0
+    },
+    {
+      "id": 85,
+      "lesson_id": 1220,
+      "title": "Partie 2",
+      "url": "https://d1yei2z3i6k35z.cloudfront.net/2029314/66e7f334f24cd_4.2LESSYSTEMESDEJEUPARTIE2.mp4",
+      "position": 2,
+      "published": 1,
+      "duration": 0
+    },
+    {
+      "id": 86,
+      "lesson_id": 1220,
+      "title": "Partie 3",
+      "url": "https://d1yei2z3i6k35z.cloudfront.net/2029314/66e8337ce1213_4.2LESSYSTEMESDEJEUPARTIE3.mp4",
+      "position": 3,
+      "published": 1,
+      "duration": 0
+    },
+    {
+      "id": 87,
+      "lesson_id": 1223,
+      "title": "Partie 1",
+      "url": "https://d1yei2z3i6k35z.cloudfront.net/2029314/66e99df7af4ba_4.3ANALYSERLADVERSAIRE.mp4",
+      "position": 1,
+      "published": 1,
+      "duration": 0
+    },
+    {
+      "id": 88,
+      "lesson_id": 1224,
+      "title": "Partie 1",
+      "url": "https://d1yei2z3i6k35z.cloudfront.net/2029314/66ed412cf2f36_4.4ANALYSEVIDEO.mp4",
+      "position": 1,
+      "published": 1,
+      "duration": 0
+    },
+    {
+      "id": 89,
+      "lesson_id": 1225,
+      "title": "Partie 1",
+      "url": "https://d1yei2z3i6k35z.cloudfront.net/2029314/66f6659227f1c_4.5PHASEARRETEES.mp4",
+      "position": 1,
+      "published": 1,
+      "duration": 0
+    }
+  ],
+  "resources": [],
+  "quizzes": [],
+  "quiz_questions": []
+}

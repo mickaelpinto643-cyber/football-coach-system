@@ -107,9 +107,30 @@ CREATE TABLE IF NOT EXISTS progress (
   user_key TEXT NOT NULL,
   lesson_id INTEGER NOT NULL,
   completed INTEGER DEFAULT 0,
+  completed_at TEXT DEFAULT NULL,
   updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
   UNIQUE(user_key, lesson_id),
   FOREIGN KEY (lesson_id) REFERENCES lessons(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS quiz_results (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  quiz_id INTEGER NOT NULL,
+  lesson_id INTEGER NOT NULL,
+  score INTEGER NOT NULL DEFAULT 0,
+  total_questions INTEGER NOT NULL DEFAULT 0,
+  answers_json TEXT DEFAULT '',
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (quiz_id) REFERENCES quizzes(id) ON DELETE CASCADE,
+  FOREIGN KEY (lesson_id) REFERENCES lessons(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS game_models (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL UNIQUE,
+  model_json TEXT DEFAULT '{}',
+  updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 `);
 

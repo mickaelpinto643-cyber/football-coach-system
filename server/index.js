@@ -2866,13 +2866,24 @@ app.get("/api/admin/learners", (req, res) => {
         ? Math.round((completedCount / totalPublishedLessons) * 100)
         : 0;
 
+      const quizResults = contentDb.prepare(`
+        SELECT qr.score, qr.total_questions
+        FROM quiz_results qr
+        WHERE qr.user_id = ?
+      `).all(u.id);
+
+      const quizzesTaken = quizResults.length;
+      const avgScore = quizzesTaken > 0
+        ? Math.round(quizResults.reduce((s, r) => s + (r.total_questions > 0 ? (r.score / r.total_questions) * 100 : 0), 0) / quizzesTaken)
+        : null;
+
       return {
         ...u,
         completed_lessons: completedCount,
         total_lessons: totalPublishedLessons,
         progress: progressPct,
-        quizzes_taken: 0,
-        avg_score: null,
+        quizzes_taken: quizzesTaken,
+        avg_score: avgScore,
         last_activity: u.last_activity || u.created_at
       };
     });
@@ -2962,6 +2973,34 @@ app.get("/api/admin/learners/:id", (req, res) => {
       ? Math.round((completedLessons / totalLessons) * 100)
       : 0;
 
+    const quizResults = contentDb.prepare(`
+      SELECT qr.id, qr.quiz_id, qr.lesson_id, qr.score, qr.total_questions, qr.created_at,
+             l.title AS lesson_title
+      FROM quiz_results qr
+      LEFT JOIN lessons l ON l.id = qr.lesson_id
+      WHERE qr.user_id = ?
+      ORDER BY qr.created_at DESC
+    `).all(learnerId);
+
+    const quizzesTaken = quizResults.length;
+    const avgScore = quizzesTaken > 0
+      ? Math.round(quizResults.reduce((s, r) => s + (r.total_questions > 0 ? (r.score / r.total_questions) * 100 : 0), 0) / quizzesTaken)
+      : null;
+
+    const gameModelRow = contentDb.prepare(`
+      SELECT model_json FROM game_models WHERE user_id = ?
+    `).get(learnerId);
+    const gameModelProgress = gameModelRow
+      ? (() => {
+          try {
+            const m = JSON.parse(gameModelRow.model_json || "{}");
+            const sections = ["identity","squad","offensive","defensiveTransition","defensive","offensiveTransition","principles","subPrinciples","behaviors","systems","setPieces","synthesis"];
+            const filled = sections.filter(k => m[k]?.trim()).length;
+            return Math.round((filled / sections.length) * 100);
+          } catch { return 0; }
+        })()
+      : 0;
+
     contentDb.close();
 
     return res.json({
@@ -2973,9 +3012,10 @@ app.get("/api/admin/learners/:id", (req, res) => {
         completed_lessons: completedLessons,
         total_lessons: totalLessons,
         module_progress: moduleProgress,
-        quizzes_taken: 0,
-        avg_score: null,
-        game_model_progress: 0
+        quizzes_taken: quizzesTaken,
+        avg_score: avgScore,
+        quiz_results: quizResults,
+        game_model_progress: gameModelProgress
       }
     });
 
@@ -3060,6 +3100,296 @@ app.post("/api/admin/learners", (req, res) => {
 const { registerContentRoutes } = require("./contentDb.cjs");
 
 registerContentRoutes(app);
+
+/* =========================================================
+   STUDENT — PROGRESSION INDIVIDUELLE
+   ========================================================= */
+
+function requireStudent(req, res) {
+  const user = getAuthenticatedUser(req);
+
+  if (!user) {
+    res.status(401).json({ success: false, error: "Authentification requise." });
+    return null;
+  }
+
+  return user;
+}
+
+app.get("/api/student/progress", (req, res) => {
+  const user = requireStudent(req, res);
+  if (!user) return;
+
+  try {
+    const contentDb = new Database(DB_PATH);
+    const rows = contentDb.prepare(`
+      SELECT lesson_id, completed, completed_at
+      FROM progress
+      WHERE user_key = ?
+    `).all(String(user.id));
+    contentDb.close();
+
+    const completed = rows.filter(r => r.completed === 1).map(r => ({
+      lesson_id: r.lesson_id,
+      completed_at: r.completed_at
+    }));
+
+    return res.json({ success: true, completed });
+  } catch (error) {
+    console.error("GET /api/student/progress:", error);
+    return res.status(500).json({ success: false, error: "Impossible de charger la progression." });
+  }
+});
+
+app.post("/api/student/progress", (req, res) => {
+  const user = requireStudent(req, res);
+  if (!user) return;
+
+  try {
+    const { lesson_id, completed } = req.body || {};
+
+    if (!lesson_id) {
+      return res.status(400).json({ success: false, error: "lesson_id requis." });
+    }
+
+    const contentDb = new Database(DB_PATH);
+    const isCompleted = completed ? 1 : 0;
+    const completedAt = isCompleted ? new Date().toISOString() : null;
+
+    contentDb.prepare(`
+      INSERT INTO progress (user_key, lesson_id, completed, completed_at, updated_at)
+      VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+      ON CONFLICT(user_key, lesson_id)
+      DO UPDATE SET completed = excluded.completed,
+        completed_at = excluded.completed_at,
+        updated_at = CURRENT_TIMESTAMP
+    `).run(String(user.id), Number(lesson_id), isCompleted, completedAt);
+
+    contentDb.close();
+
+    return res.json({ success: true });
+  } catch (error) {
+    console.error("POST /api/student/progress:", error);
+    return res.status(500).json({ success: false, error: "Impossible d'enregistrer la progression." });
+  }
+});
+
+/* =========================================================
+   STUDENT — QUIZ PAR LEÇON
+   ========================================================= */
+
+app.get("/api/student/quiz/:lessonId", (req, res) => {
+  const user = requireStudent(req, res);
+  if (!user) return;
+
+  try {
+    const contentDb = new Database(DB_PATH);
+    const lessonId = Number(req.params.lessonId);
+
+    const quiz = contentDb.prepare(`
+      SELECT id, lesson_id, title, published
+      FROM quizzes
+      WHERE lesson_id = ? AND published = 1
+      LIMIT 1
+    `).get(lessonId);
+
+    if (!quiz) {
+      contentDb.close();
+      return res.json({ success: true, quiz: null });
+    }
+
+    const questions = contentDb.prepare(`
+      SELECT id, question, options_json, position
+      FROM quiz_questions
+      WHERE quiz_id = ?
+      ORDER BY position, id
+    `).all(quiz.id).map(q => ({
+      id: q.id,
+      question: q.question,
+      options: JSON.parse(q.options_json || "[]"),
+      position: q.position
+    }));
+
+    const previousResult = contentDb.prepare(`
+      SELECT score, total_questions, created_at
+      FROM quiz_results
+      WHERE user_id = ? AND quiz_id = ?
+      ORDER BY created_at DESC
+      LIMIT 1
+    `).get(user.id, quiz.id);
+
+    contentDb.close();
+
+    return res.json({
+      success: true,
+      quiz: { ...quiz, questions },
+      previousResult: previousResult || null
+    });
+  } catch (error) {
+    console.error("GET /api/student/quiz:", error);
+    return res.status(500).json({ success: false, error: "Impossible de charger le quiz." });
+  }
+});
+
+app.post("/api/student/quiz/:lessonId/submit", (req, res) => {
+  const user = requireStudent(req, res);
+  if (!user) return;
+
+  try {
+    const contentDb = new Database(DB_PATH);
+    const lessonId = Number(req.params.lessonId);
+    const { answers } = req.body || {};
+
+    if (!answers || typeof answers !== "object") {
+      contentDb.close();
+      return res.status(400).json({ success: false, error: "Réponses requises." });
+    }
+
+    const quiz = contentDb.prepare(`
+      SELECT id FROM quizzes WHERE lesson_id = ? AND published = 1 LIMIT 1
+    `).get(lessonId);
+
+    if (!quiz) {
+      contentDb.close();
+      return res.status(404).json({ success: false, error: "Quiz introuvable." });
+    }
+
+    const questions = contentDb.prepare(`
+      SELECT id, correct_answer FROM quiz_questions WHERE quiz_id = ? ORDER BY position, id
+    `).all(quiz.id);
+
+    let score = 0;
+    const detailedAnswers = questions.map(q => {
+      const userAnswer = answers[q.id] || "";
+      const isCorrect = userAnswer === q.correct_answer;
+      if (isCorrect) score++;
+      return { question_id: q.id, user_answer: userAnswer, correct: isCorrect };
+    });
+
+    contentDb.prepare(`
+      INSERT INTO quiz_results (user_id, quiz_id, lesson_id, score, total_questions, answers_json, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    `).run(user.id, quiz.id, lessonId, score, questions.length, JSON.stringify(detailedAnswers));
+
+    contentDb.close();
+
+    return res.json({
+      success: true,
+      score,
+      total: questions.length,
+      percentage: questions.length > 0 ? Math.round((score / questions.length) * 100) : 0,
+      details: detailedAnswers
+    });
+  } catch (error) {
+    console.error("POST /api/student/quiz/submit:", error);
+    return res.status(500).json({ success: false, error: "Impossible de soumettre le quiz." });
+  }
+});
+
+/* =========================================================
+   STUDENT — MODÈLE DE JEU INDIVIDUEL
+   ========================================================= */
+
+app.get("/api/student/game-model", (req, res) => {
+  const user = requireStudent(req, res);
+  if (!user) return;
+
+  try {
+    const contentDb = new Database(DB_PATH);
+    const row = contentDb.prepare(`
+      SELECT model_json, updated_at FROM game_models WHERE user_id = ?
+    `).get(user.id);
+    contentDb.close();
+
+    return res.json({
+      success: true,
+      model: row ? JSON.parse(row.model_json || "{}") : {},
+      updated_at: row?.updated_at || null
+    });
+  } catch (error) {
+    console.error("GET /api/student/game-model:", error);
+    return res.status(500).json({ success: false, error: "Impossible de charger le modèle de jeu." });
+  }
+});
+
+app.post("/api/student/game-model", (req, res) => {
+  const user = requireStudent(req, res);
+  if (!user) return;
+
+  try {
+    const { model } = req.body || {};
+
+    const contentDb = new Database(DB_PATH);
+    contentDb.prepare(`
+      INSERT INTO game_models (user_id, model_json, updated_at)
+      VALUES (?, ?, CURRENT_TIMESTAMP)
+      ON CONFLICT(user_id)
+      DO UPDATE SET model_json = excluded.model_json, updated_at = CURRENT_TIMESTAMP
+    `).run(user.id, JSON.stringify(model || {}));
+
+    contentDb.close();
+
+    return res.json({ success: true });
+  } catch (error) {
+    console.error("POST /api/student/game-model:", error);
+    return res.status(500).json({ success: false, error: "Impossible de sauvegarder le modèle de jeu." });
+  }
+});
+
+/* =========================================================
+   ADMIN — VOIR LE MODÈLE DE JEU D'UN APPRENANT
+   ========================================================= */
+
+app.get("/api/admin/learners/:id/game-model", (req, res) => {
+  const admin = requireAdmin(req, res);
+  if (!admin) return;
+
+  try {
+    const learnerId = Number(req.params.id);
+    const contentDb = new Database(DB_PATH);
+    const row = contentDb.prepare(`
+      SELECT model_json, updated_at FROM game_models WHERE user_id = ?
+    `).get(learnerId);
+    contentDb.close();
+
+    return res.json({
+      success: true,
+      model: row ? JSON.parse(row.model_json || "{}") : {},
+      updated_at: row?.updated_at || null
+    });
+  } catch (error) {
+    console.error("GET /api/admin/learners/:id/game-model:", error);
+    return res.status(500).json({ success: false, error: "Impossible de charger le modèle de jeu." });
+  }
+});
+
+/* =========================================================
+   ADMIN — RÉSULTATS QUIZ D'UN APPRENANT
+   ========================================================= */
+
+app.get("/api/admin/learners/:id/quiz-results", (req, res) => {
+  const admin = requireAdmin(req, res);
+  if (!admin) return;
+
+  try {
+    const learnerId = Number(req.params.id);
+    const contentDb = new Database(DB_PATH);
+    const results = contentDb.prepare(`
+      SELECT qr.id, qr.quiz_id, qr.lesson_id, qr.score, qr.total_questions, qr.created_at,
+             l.title AS lesson_title
+      FROM quiz_results qr
+      LEFT JOIN lessons l ON l.id = qr.lesson_id
+      WHERE qr.user_id = ?
+      ORDER BY qr.created_at DESC
+    `).all(learnerId);
+    contentDb.close();
+
+    return res.json({ success: true, results });
+  } catch (error) {
+    console.error("GET /api/admin/learners/:id/quiz-results:", error);
+    return res.status(500).json({ success: false, error: "Impossible de charger les résultats." });
+  }
+});
 
 /* =========================================================
    ASSISTANT IA — MODÈLE DE JEU

@@ -17,24 +17,33 @@ const SECTIONS = [
 ];
 
 function GameModelStudent({ user }) {
-  const [model, setModel] = useState(() => {
-    try {
-      const key = `fcs-game-model-${user?.id || "anon"}`;
-      return JSON.parse(localStorage.getItem(key) || "{}");
-    } catch { return {}; }
-  });
+  const [model, setModel] = useState({});
   const [savedFlash, setSavedFlash] = useState(false);
   const [aiInput, setAiInput] = useState("");
   const [aiResult, setAiResult] = useState("");
   const [aiError, setAiError] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [aiStatus, setAiStatus] = useState("loading");
-
-  const key = `fcs-game-model-${user?.id || "anon"}`;
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    localStorage.setItem(key, JSON.stringify(model));
-  }, [model, key]);
+    async function loadModel() {
+      try {
+        const res = await fetch("/api/student/game-model", { credentials: "include" });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.model) {
+            setModel(data.model);
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to load game model:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadModel();
+  }, []);
 
   useEffect(() => {
     fetch("/api/ai/status", { credentials: "include" })
@@ -48,6 +57,13 @@ function GameModelStudent({ user }) {
     setSavedFlash(true);
     clearTimeout(window.__fcsModelTimer);
     window.__fcsModelTimer = setTimeout(() => setSavedFlash(false), 1500);
+
+    fetch("/api/student/game-model", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model: { ...model, [field]: value } })
+    }).catch(err => console.warn("Failed to save game model:", err));
   }
 
   const filledCount = SECTIONS.filter(s => model[s.key]?.trim()).length;
@@ -88,6 +104,14 @@ function GameModelStudent({ user }) {
     } finally {
       setAiLoading(false);
     }
+  }
+
+  if (loading) {
+    return (
+      <div style={{ padding: "60px", textAlign: "center", color: "#7b8797" }}>
+        <div style={{ fontSize: "16px", fontWeight: 700 }}>Chargement de ton modèle de jeu...</div>
+      </div>
+    );
   }
 
   return (

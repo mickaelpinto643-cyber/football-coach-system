@@ -7,7 +7,7 @@ import {
   CalendarDays, BarChart3, BadgeCheck, Headphones,
   Search, Bell, ArrowRight, ArrowLeft, CheckCircle2, Circle,
   FolderOpen, ClipboardList, Video, Trophy, Clock,
-  ChevronRight, Lock, Menu, Settings, X
+  ChevronRight, Lock, Menu, Settings, X, HelpCircle, Award
 } from "lucide-react";
 import "./App.css";
 import {
@@ -5606,23 +5606,35 @@ function StudentPortalApp() {
   const [password, setPassword] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
   const [studentPage, setStudentPage] = useState("dashboard");
-  const [completed, setCompleted] = useState(() => {
-    try {
-      const key = `fcs-completed-${user?.id || "anon"}`;
-      return JSON.parse(localStorage.getItem("fcs-student-completed") || "[]");
-    } catch { return []; }
-  });
+  const [completed, setCompleted] = useState([]);
 
-  useEffect(() => {
-    localStorage.setItem("fcs-student-completed", JSON.stringify(completed));
-  }, [completed]);
+  async function loadProgress() {
+    try {
+      const res = await fetch("/api/student/progress", { credentials: "include" });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.completed) {
+          setCompleted(data.completed.map(c => c.lesson_id));
+        }
+      }
+    } catch (err) {
+      console.warn("Failed to load progress:", err);
+    }
+  }
 
   function toggleCompleted(id) {
-    setCompleted(prev =>
-      prev.includes(id)
-        ? prev.filter(item => item !== id)
-        : [...prev, id]
-    );
+    const isDone = completed.includes(id);
+    const newCompleted = isDone
+      ? completed.filter(item => item !== id)
+      : [...completed, id];
+    setCompleted(newCompleted);
+
+    fetch("/api/student/progress", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ lesson_id: id, completed: !isDone })
+    }).catch(err => console.warn("Failed to save progress:", err));
   }
 
   async function loadStudent() {
@@ -5650,6 +5662,8 @@ function StudentPortalApp() {
 
       setAuthenticated(true);
       setUser(me.user);
+
+      await loadProgress();
 
       try {
         const formationResponse = await fetch("/api/student/formation", {
@@ -5884,6 +5898,7 @@ function StudentPortalApp() {
     { key: "dashboard", label: "Accueil", icon: Home },
     { key: "formation", label: "Ma formation", icon: BookOpen },
     { key: "documents", label: "Documents & Templates", icon: FileText },
+    { key: "quiz", label: "Quiz", icon: HelpCircle },
     { key: "model-game", label: "Mon Modèle de jeu", icon: Brain },
     { key: "lives", label: "Lives & Replays", icon: CalendarDays },
     { key: "progress", label: "Ma progression", icon: BarChart3 }
@@ -6132,6 +6147,261 @@ function StudentPortalApp() {
     );
   }
 
+  function StudentQuiz({ modules, user }) {
+    const allLessons = modules.flatMap(m => (m.lessons || []).map(l => ({ ...l, moduleTitle: m.title, moduleKey: m.moduleKey })));
+    const [selectedLessonId, setSelectedLessonId] = useState(null);
+    const [quizData, setQuizData] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [answers, setAnswers] = useState({});
+    const [result, setResult] = useState(null);
+    const [previousResult, setPreviousResult] = useState(null);
+    const [error, setError] = useState("");
+
+    async function loadQuiz(lesson) {
+      setSelectedLessonId(lesson.numericId);
+      setLoading(true);
+      setQuizData(null);
+      setAnswers({});
+      setResult(null);
+      setPreviousResult(null);
+      setError("");
+
+      try {
+        const res = await fetch(`/api/student/quiz/${lesson.numericId}`, { credentials: "include" });
+        const data = await res.json();
+        if (data.success) {
+          setQuizData(data.quiz);
+          setPreviousResult(data.previousResult || null);
+        } else {
+          setError(data.error || "Impossible de charger le quiz.");
+        }
+      } catch (err) {
+        setError("Impossible de charger le quiz.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    async function submitQuiz() {
+      if (!quizData || !selectedLessonId) return;
+      setLoading(true);
+      setError("");
+
+      try {
+        const res = await fetch(`/api/student/quiz/${selectedLessonId}/submit`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ answers })
+        });
+        const data = await res.json();
+        if (data.success) {
+          setResult(data);
+        } else {
+          setError(data.error || "Impossible de soumettre le quiz.");
+        }
+      } catch (err) {
+        setError("Impossible de soumettre le quiz.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    const selectedLesson = allLessons.find(l => l.numericId === selectedLessonId);
+
+    return (
+      <div style={{ maxWidth: "920px", margin: "0 auto", padding: "34px 28px 60px" }}>
+        <div style={{ marginBottom: "28px" }}>
+          <div style={{ fontSize: "12px", fontWeight: 800, letterSpacing: "2px", color: "#b07b00" }}>
+            ÉVALUATION
+          </div>
+          <h1 style={{ margin: "7px 0", color: "#09233d", fontSize: "30px" }}>Quiz</h1>
+          <p style={{ color: "#6b7a8c", margin: 0 }}>
+            Teste tes connaissances après chaque leçon. Chaque quiz contient 7 questions.
+          </p>
+        </div>
+
+        {/* LESSON SELECTOR */}
+        <div style={{
+          background: "#fff", border: "1px solid #e5eaf0", borderRadius: "16px",
+          padding: "20px", marginBottom: "24px"
+        }}>
+          <strong style={{ color: "#09233d", fontSize: "15px", display: "block", marginBottom: "12px" }}>
+            Choisir une leçon
+          </strong>
+          <div style={{ display: "grid", gap: "8px" }}>
+            {allLessons.map(lesson => (
+              <button
+                key={lesson.numericId}
+                onClick={() => loadQuiz(lesson)}
+                style={{
+                  width: "100%", textAlign: "left", border: selectedLessonId === lesson.numericId ? "2px solid #f1bd3e" : "1px solid #e5eaf0",
+                  background: selectedLessonId === lesson.numericId ? "#fff7df" : "#fff",
+                  borderRadius: "10px", padding: "12px 16px", cursor: "pointer",
+                  display: "flex", justifyContent: "space-between", alignItems: "center",
+                  fontSize: "14px", color: "#09233d", fontWeight: 600
+                }}
+              >
+                <span>{lesson.title}</span>
+                <span style={{ fontSize: "11px", color: "#9aa5b5" }}>{lesson.moduleKey}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {error && (
+          <div style={{
+            padding: "14px 18px", borderRadius: "10px", background: "#fef2f2",
+            color: "#c0392b", fontSize: "14px", marginBottom: "20px"
+          }}>{error}</div>
+        )}
+
+        {loading && (
+          <div style={{ padding: "40px", textAlign: "center", color: "#7b8797" }}>
+            <div style={{ fontSize: "16px", fontWeight: 700 }}>Chargement du quiz...</div>
+          </div>
+        )}
+
+        {/* QUIZ DISPLAY */}
+        {!loading && quizData && quizData.questions && quizData.questions.length > 0 && (
+          <div style={{
+            background: "#fff", border: "1px solid #e5eaf0", borderRadius: "16px",
+            padding: "28px"
+          }}>
+            {previousResult && !result && (
+              <div style={{
+                padding: "12px 16px", borderRadius: "10px", background: "#f0f7ff",
+                border: "1px solid #d0e0f0", fontSize: "13px", color: "#09233d",
+                marginBottom: "20px", fontWeight: 600
+              }}>
+                Dernier résultat : {previousResult.score}/{previousResult.total_questions} ({Math.round((previousResult.score / previousResult.total_questions) * 100)}%)
+              </div>
+            )}
+
+            <h2 style={{ margin: "0 0 6px", color: "#09233d", fontSize: "20px" }}>{quizData.title}</h2>
+            <p style={{ color: "#7b8797", fontSize: "14px", margin: "0 0 24px" }}>
+              {selectedLesson?.title} · {quizData.questions.length} question{quizData.questions.length !== 1 ? "s" : ""}
+            </p>
+
+            <div style={{ display: "grid", gap: "20px" }}>
+              {quizData.questions.map((q, qIdx) => (
+                <div key={q.id} style={{
+                  border: "1px solid #edf0f3", borderRadius: "12px", padding: "18px"
+                }}>
+                  <div style={{ fontWeight: 700, color: "#09233d", marginBottom: "12px", fontSize: "15px" }}>
+                    {qIdx + 1}. {q.question}
+                  </div>
+                  <div style={{ display: "grid", gap: "8px" }}>
+                    {q.options.map((opt, oIdx) => {
+                      const isSelected = answers[q.id] === opt;
+                      const showCorrect = result && result.details;
+                      const detail = result?.details?.find(d => d.question_id === q.id);
+                      const isCorrectAnswer = detail && opt === quizData.questions[qIdx].options.find(o => o === detail.user_answer);
+
+                      return (
+                        <button
+                          key={oIdx}
+                          onClick={() => !result && setAnswers(prev => ({ ...prev, [q.id]: opt }))}
+                          disabled={!!result}
+                          style={{
+                            width: "100%", textAlign: "left",
+                            border: result && detail && detail.user_answer === opt
+                              ? detail.correct ? "2px solid #287a55" : "2px solid #c0392b"
+                              : isSelected ? "2px solid #f1bd3e" : "1px solid #dfe5eb",
+                            background: result && detail && detail.user_answer === opt
+                              ? detail.correct ? "#e8f5ee" : "#fef2f2"
+                              : isSelected ? "#fff7df" : "#fff",
+                            borderRadius: "10px", padding: "12px 16px", cursor: result ? "default" : "pointer",
+                            fontSize: "14px", color: "#09233d", fontWeight: 500
+                          }}
+                        >
+                          {opt}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {!result ? (
+              <button
+                onClick={submitQuiz}
+                disabled={Object.keys(answers).length < quizData.questions.length}
+                style={{
+                  marginTop: "24px", border: 0, borderRadius: "12px", padding: "14px 28px",
+                  background: Object.keys(answers).length < quizData.questions.length ? "#ccc" : "#f1bd3e",
+                  color: "#09233d", fontWeight: 800, cursor: "pointer", fontSize: "15px"
+                }}
+              >
+                {Object.keys(answers).length < quizData.questions.length
+                  ? `Répondre à toutes les questions (${Object.keys(answers).length}/${quizData.questions.length})`
+                  : "Valider mes réponses"}
+              </button>
+            ) : (
+              <div style={{
+                marginTop: "24px", padding: "24px", borderRadius: "14px",
+                background: result.percentage >= 70 ? "#e8f5ee" : "#fef9e7",
+                border: `1px solid ${result.percentage >= 70 ? "#287a55" : "#b07b00"}`,
+                textAlign: "center"
+              }}>
+                <div style={{ fontSize: "36px", fontWeight: 900, color: result.percentage >= 70 ? "#287a55" : "#b07b00" }}>
+                  {result.percentage}%
+                </div>
+                <div style={{ fontSize: "16px", color: "#09233d", fontWeight: 700, marginTop: "8px" }}>
+                  {result.score} / {result.total} bonnes réponses
+                </div>
+                <div style={{ fontSize: "14px", color: "#6b7a8c", marginTop: "8px" }}>
+                  {result.percentage >= 70 ? "Bravo, tu maîtrises cette leçon !" : "Continue à réviser et réessaie."}
+                </div>
+                <button
+                  onClick={() => { setResult(null); setAnswers({}); }}
+                  style={{
+                    marginTop: "16px", border: "1px solid #dfe5eb", borderRadius: "10px",
+                    padding: "10px 20px", background: "#fff", color: "#09233d",
+                    fontWeight: 700, cursor: "pointer", fontSize: "14px"
+                  }}
+                >
+                  Recommencer le quiz
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {!loading && quizData && (!quizData.questions || quizData.questions.length === 0) && (
+          <div style={{
+            background: "#fff", border: "1px solid #e5eaf0", borderRadius: "16px",
+            padding: "48px 24px", textAlign: "center", color: "#7b8797"
+          }}>
+            <HelpCircle size={48} style={{ opacity: 0.3, marginBottom: "16px" }} />
+            <p style={{ fontWeight: 600, color: "#09233d", marginBottom: "6px" }}>
+              Quiz pas encore disponible
+            </p>
+            <p style={{ fontSize: "14px" }}>
+              Le quiz pour cette leçon sera bientôt disponible. L'administrateur doit encore créer les questions.
+            </p>
+          </div>
+        )}
+
+        {!loading && !quizData && !error && (
+          <div style={{
+            background: "#fff", border: "1px solid #e5eaf0", borderRadius: "16px",
+            padding: "48px 24px", textAlign: "center", color: "#7b8797"
+          }}>
+            <HelpCircle size={48} style={{ opacity: 0.3, marginBottom: "16px" }} />
+            <p style={{ fontWeight: 600, color: "#09233d", marginBottom: "6px" }}>
+              Sélectionne une leçon
+            </p>
+            <p style={{ fontSize: "14px" }}>
+              Choisis une leçon ci-dessus pour accéder à son quiz.
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   function StudentProgress() {
     const moduleStats = studentModules.map(module => {
       const lessons = module.lessons || [];
@@ -6214,6 +6484,8 @@ function StudentPortalApp() {
           />
         ) : studentPage === "documents" ? (
           <DocumentsTemplates modules={studentModules} />
+        ) : studentPage === "quiz" ? (
+          <StudentQuiz modules={studentModules} user={user} />
         ) : studentPage === "model-game" ? (
           <GameModelStudent user={user} />
         ) : studentPage === "lives" ? (

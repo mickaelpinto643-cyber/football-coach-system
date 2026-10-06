@@ -468,6 +468,67 @@ function LearnerDetail({ learner, onBack }) {
         </div>
       )}
 
+      {/* QUIZ RÉALISÉS */}
+      {d.quiz_results && d.quiz_results.length > 0 && (
+        <div style={{
+          background: "#fff", border: "1px solid #e5eaf0", borderRadius: "16px",
+          padding: "24px", marginBottom: "20px"
+        }}>
+          <h2 style={{
+            margin: "0 0 16px", color: "#09233d", fontSize: "18px",
+            display: "flex", alignItems: "center", gap: "8px"
+          }}>
+            <Trophy size={20} style={{ color: "#b07b00" }} /> Quiz réalisés
+          </h2>
+          <div style={{ display: "grid", gap: "10px" }}>
+            {d.quiz_results.map((qr, i) => (
+              <div key={qr.id || i} style={{
+                display: "flex", justifyContent: "space-between", alignItems: "center",
+                padding: "12px 16px", borderRadius: "10px",
+                background: "#f8fafc", border: "1px solid #edf0f3"
+              }}>
+                <div>
+                  <strong style={{ color: "#09233d", fontSize: "14px" }}>
+                    {qr.lesson_title || `Leçon #${qr.lesson_id}`}
+                  </strong>
+                  <div style={{ fontSize: "12px", color: "#9aa5b5" }}>
+                    {qr.created_at ? new Date(qr.created_at).toLocaleDateString("fr-FR") : "—"}
+                  </div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <strong style={{
+                    color: qr.total_questions > 0 && (qr.score / qr.total_questions) >= 0.7 ? "#287a55" : "#b07b00",
+                    fontSize: "16px"
+                  }}>
+                    {qr.score}/{qr.total_questions}
+                  </strong>
+                  <div style={{ fontSize: "12px", color: "#9aa5b5" }}>
+                    {qr.total_questions > 0 ? Math.round((qr.score / qr.total_questions) * 100) : 0}%
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {(!d.quiz_results || d.quiz_results.length === 0) && (
+        <div style={{
+          background: "#fff", border: "1px solid #e5eaf0", borderRadius: "16px",
+          padding: "24px", marginBottom: "20px"
+        }}>
+          <h2 style={{
+            margin: "0 0 12px", color: "#09233d", fontSize: "18px",
+            display: "flex", alignItems: "center", gap: "8px"
+          }}>
+            <Trophy size={20} style={{ color: "#b07b00" }} /> Quiz réalisés
+          </h2>
+          <div style={{ fontSize: "14px", color: "#9aa5b5" }}>
+            Aucun quiz réalisé pour le moment.
+          </div>
+        </div>
+      )}
+
       {/* MODÈLE DE JEU */}
       <div style={{
         background: "#fff", border: "1px solid #e5eaf0", borderRadius: "16px",

@@ -6600,8 +6600,10 @@ function AdminApp() {
   const [activeModuleId, setActiveModuleId] = useState(1);
   const [initialLessonId, setInitialLessonId] = useState(null);
 
-  // Catalogue CMS/API — fallback sur le catalogue statique
-  const [apiModules, setApiModules] = useState(null);
+  // Catalogue CMS/API — les données réelles sont intégrées au build
+  // via content-export.json. On les charge immédiatement, puis on tente
+  // de les rafraîchir depuis l'API si elle est disponible.
+  const [apiModules, setApiModules] = useState(() => getFallbackModules());
 
   useEffect(() => {
     let cancelled = false;
@@ -6609,11 +6611,17 @@ function AdminApp() {
     async function loadContent() {
       try {
         const response = await fetch(
-          "/api/content"
+          "/api/content",
+          { headers: { Accept: "application/json" } }
         );
 
         if (!response.ok) {
           throw new Error(`API content HTTP ${response.status}`);
+        }
+
+        const contentType = response.headers.get("content-type") || "";
+        if (!contentType.includes("application/json")) {
+          throw new Error("Réponse non-JSON — API indisponible");
         }
 
         const data = await response.json();
@@ -6644,8 +6652,6 @@ function AdminApp() {
         if (!cancelled && modules.length) {
           setApiModules(modules);
 
-          // Si le module actuellement sélectionné n'existe plus
-          // dans le catalogue API, on sélectionne le premier.
           setActiveModuleId(current => {
             return modules.some(module => module.id === current)
               ? current
@@ -6657,18 +6663,6 @@ function AdminApp() {
           "⚠️ API CMS indisponible — utilisation du catalogue local",
           error
         );
-
-        const fallback = getFallbackModules();
-
-        if (!cancelled && fallback.length) {
-          setApiModules(fallback);
-
-          setActiveModuleId(current => {
-            return fallback.some(module => module.id === current)
-              ? current
-              : fallback[0].id;
-          });
-        }
       }
     }
 

@@ -6515,8 +6515,9 @@ function StudentPortalApp() {
 
 
 function AdminApp() {
-  const [authLoading, setAuthLoading] = useState(true);
-  const [authed, setAuthed] = useState(false);
+  const demoMode = import.meta.env.DEV;
+const [authLoading, setAuthLoading] = useState(!demoMode);
+const [authed, setAuthed] = useState(demoMode);
   const [authUser, setAuthUser] = useState(null);
   const [authError, setAuthError] = useState("");
   const [loginEmail, setLoginEmail] = useState("");
@@ -6569,8 +6570,10 @@ function AdminApp() {
   }
 
   useEffect(() => {
+  if (!demoMode) {
     checkAuth();
-  }, []);
+  }
+}, [demoMode]);;
 
   useEffect(() => {
     localStorage.setItem(

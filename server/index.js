@@ -3516,7 +3516,10 @@ app.post("/api/ai/game-model", async (req, res) => {
 
 const server = http.createServer(app);
 
-server.listen(3001, "127.0.0.1", () => {
+const PORT = Number(process.env.PORT || 3001);
+const HOST = process.env.HOST || "127.0.0.1";
+
+server.listen(PORT, HOST, () => {
   console.log("");
   console.log("======================================");
   console.log(" FOOTBALL COACH SYSTEM — API");

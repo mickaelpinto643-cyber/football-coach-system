@@ -21,7 +21,7 @@ const fs = require("node:fs");
 
 const execFileAsync = promisify(execFile);
 
-const DB_PATH = path.resolve(process.cwd(), "data/fcs.db");
+const DB_PATH = path.resolve(process.env.FCS_DB_PATH || "data/fcs.db");
 
 fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
 
